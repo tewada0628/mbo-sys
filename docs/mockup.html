@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MBO管理システム モックアップ</title>
+  <style>
+    /* ===== リセット・基本 ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Hiragino Sans", "Meiryo", sans-serif; font-size: 14px; color: #1a1a1a; background: #f7f7f7; }
+
+    /* ===== コーポレートカラー ===== */
+    :root {
+      --primary:       #03AEBB;
+      --primary-dark:  #028a95;
+      --primary-light: #e6f8fa;
+      --primary-mid:   #b3e8ed;
+      --black:         #1a1a1a;
+      --gray-dark:     #4a4a4a;
+      --gray:          #888888;
+      --gray-light:    #cccccc;
+      --gray-bg:       #f4f4f4;
+      --white:         #ffffff;
+      --border:        #e8e8e8;
+      --danger:        #c0392b;
+      --success:       #27ae60;
+      --warning:       #e67e22;
+    }
+
+    /* ===== 画面切り替え ===== */
+    .screen { display: none; }
+    .screen.active { display: flex; min-height: 100vh; }
+
+    /* ===== サイドバー ===== */
+    .sidebar {
+      width: 210px; min-height: 100vh; background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 20px 20px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .logo-mark {
+      font-size: 16px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px;
+    }
+    .sidebar-logo .logo-sub {
+      font-size: 10px; color: var(--gray); margin-top: 2px; letter-spacing: 0.05em;
+    }
+    .sidebar-nav { flex: 1; padding: 16px 0; }
+    .sidebar-section {
+      padding: 14px 20px 4px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; color: var(--gray-light); text-transform: uppercase;
+    }
+    .sidebar-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 20px; cursor: pointer; font-size: 13px;
+      color: var(--gray-dark); border-left: 3px solid transparent;
+      transition: all 0.12s;
+    }
+    .sidebar-nav-item:hover { background: var(--gray-bg); color: var(--black); }
+    .sidebar-nav-item.active {
+      background: var(--primary-light); color: var(--primary);
+      border-left-color: var(--primary); font-weight: 700;
+    }
+    .sidebar-nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+    .sidebar-user {
+      padding: 14px 20px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar-user .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--primary); color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .sidebar-user .name { font-size: 13px; font-weight: 600; color: var(--black); }
+    .sidebar-user .role { font-size: 11px; color: var(--gray); margin-top: 1px; }
+
+    /* ===== メインエリア ===== */
+    .main { flex: 1; display: flex; flex-direction: column; overflow-x: hidden; }
+    .topbar {
+      background: var(--white); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 52px;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 15px; font-weight: 700; color: var(--black); }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .phase-label {
+      font-size: 12px; padding: 4px 10px; border-radius: 4px;
+      background: var(--primary-light); color: var(--primary); font-weight: 600;
+    }
+    .content { padding: 24px 28px; flex: 1; }
+
+    /* ===== ボタン ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 4px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none; transition: opacity 0.12s;
+      font-family: inherit;
+    }
+    .btn:hover { opacity: 0.82; }
+    .btn-primary   { background: var(--primary); color: var(--white); }
+    .btn-outline   { background: var(--white); color: var(--primary); border: 1px solid var(--primary); }
+    .btn-ghost     { background: transparent; color: var(--gray-dark); border: 1px solid var(--border); }
+    .btn-danger    { background: var(--danger); color: var(--white); }
+    .btn-success   { background: var(--success); color: var(--white); }
+    .btn-warning   { background: var(--warning); color: var(--white); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* ===== カード ===== */
+    .card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 6px; margin-bottom: 14px;
+    }
+    .card-header {
+      padding: 13px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--black); }
+    .card-body { padding: 16px 18px; }
+    .card-footer {
+      padding: 11px 18px; border-top: 1px solid var(--border);
+      background: var(--gray-bg); border-radius: 0 0 6px 6px;
+    }
+
+    /* ===== バッジ ===== */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 3px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-teal   { background: var(--primary-light); color: var(--primary); }
+    .badge-green  { background: #e8f8f0; color: var(--success); }
+    .badge-yellow { background: #fef9e7; color: #b7770d; }
+    .badge-red    { background: #fdf2f2; color: var(--danger); }
+    .badge-gray   { background: var(--gray-bg); color: var(--gray); }
+    .badge-orange { background: #fef3e8; color: var(--warning); }
+
+    /* ===== タグ（連動パターン等） ===== */
+    .tag {
+      display: inline-block; padding: 2px 7px; border-radius: 3px;
+      font-size: 11px; font-weight: 600;
+      background: var(--gray-bg); color: var(--gray-dark);
+    }
+
+    /* ===== テーブル ===== */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: var(--gray-bg); font-size: 11px; font-weight: 700;
+      color: var(--gray); text-align: left;
+      padding: 9px 14px; border-bottom: 1px solid var(--border);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fbfbfb; }
+
+    /* ===== フォーム ===== */
+    label { display: block; font-size: 12px; font-weight: 700; color: var(--gray-dark); margin-bottom: 4px; }
+    input[type="text"], textarea, select {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 4px; font-size: 13px; font-family: inherit;
+      background: var(--white); transition: border-color 0.12s; color: var(--black);
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(3,174,187,0.1);
+    }
+    textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+    .form-row { margin-bottom: 13px; }
+    .form-hint { font-size: 11px; color: var(--gray); margin-top: 3px; }
+    .required { color: var(--danger); margin-left: 2px; }
+
+    /* ===== アラート ===== */
+    .alert {
+      padding: 11px 14px; border-radius: 4px; margin-bottom: 14px;
+      font-size: 13px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.6;
+    }
+    .alert-info    { background: var(--primary-light); border-left: 3px solid var(--primary); color: #026b74; }
+    .alert-warning { background: #fef9e7; border-left: 3px solid var(--warning); color: #7d5a00; }
+    .alert-danger  { background: #fdf2f2; border-left: 3px solid var(--danger); color: #8c1e1e; }
+    .alert-success { background: #e8f8f0; border-left: 3px solid var(--success); color: #1a6639; }
+
+    /* ===== タブ ===== */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .tab {
+      padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--gray); border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: all 0.12s;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab:hover:not(.active) { color: var(--black); }
+
+    /* ===== 統計カード ===== */
+    .stat-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 6px; padding: 16px 18px;
+    }
+    .stat-value { font-size: 26px; font-weight: 700; color: var(--primary); margin-top: 4px; }
+    .stat-label { font-size: 11px; font-weight: 700; color: var(--gray); letter-spacing: 0.04em; text-transform: uppercase; }
+
+    /* ===== レイアウト ===== */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .flex-center  { display: flex; align-items: center; }
+    .gap-6  { gap: 6px; }
+    .gap-8  { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .mt-8   { margin-top: 8px; }
+    .mt-12  { margin-top: 12px; }
+    .mt-16  { margin-top: 16px; }
+    .mb-8   { margin-bottom: 8px; }
+    .mb-12  { margin-bottom: 12px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    .text-muted { color: var(--gray); font-size: 12px; }
+    .text-sm    { font-size: 12px; }
+    .text-bold  { font-weight: 700; }
+    .breadcrumb { font-size: 12px; color: var(--gray); margin-bottom: 8px; }
+    .breadcrumb span { color: var(--primary); }
+
+    /* ===== 目標カード ===== */
+    .goal-card { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; }
+    .goal-card-header {
+      padding: 11px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--gray-bg); border-radius: 6px 6px 0 0;
+    }
+    .goal-type-label {
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 3px;
+    }
+    .type-kpi1  { background: var(--primary-light); color: var(--primary); }
+    .type-kpi2  { background: #ede8fa; color: #6941c6; }
+    .type-org   { background: #e8f8f0; color: var(--success); }
+    .goal-card-body { padding: 14px 16px; }
+    .goal-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; color: var(--black); }
+    .goal-desc  { font-size: 12px; color: var(--gray-dark); line-height: 1.7; }
+    .weight-text { font-size: 12px; font-weight: 700; color: var(--gray-dark); }
+
+    /* ===== 達成基準 ===== */
+    .criteria { margin-top: 12px; }
+    .criteria-row { display: grid; grid-template-columns: 56px 1fr; gap: 8px; margin-top: 7px; align-items: start; }
+    .criteria-label {
+      font-size: 11px; font-weight: 700; padding: 2px 6px;
+      border-radius: 3px; text-align: center; white-space: nowrap;
+    }
+    .c-12 { background: #fef9e7; color: #b7770d; border: 1px solid #f7dc6f; }
+    .c-10 { background: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-mid); }
+    .c-08 { background: var(--gray-bg); color: var(--gray-dark); border: 1px solid var(--border); }
+    .criteria-text { font-size: 12px; color: var(--gray-dark); line-height: 1.6; padding-top: 2px; }
+
+    /* ===== アバター ===== */
+    .avatar-sm {
+      width: 28px; height: 28px; border-radius: 50%;
+      color: var(--white); display: flex; align-items: center;
+      justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .av-teal   { background: var(--primary); }
+    .av-green  { background: var(--success); }
+    .av-purple { background: #6941c6; }
+    .av-orange { background: var(--warning); }
+    .av-gray   { background: var(--gray); }
+
+    /* ===== 進捗バー ===== */
+    .progress-wrap { margin-top: 6px; }
+    .progress-bar { height: 5px; background: var(--border); border-radius: 10px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 10px; }
+
+    /* ===== ToDo ===== */
+    .todo-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+    }
+    .dot-red   { background: var(--danger); }
+    .dot-teal  { background: var(--primary); }
+    .dot-green { background: var(--success); }
+    .dot-gray  { background: var(--gray-light); }
+    .todo-text { font-size: 13px; font-weight: 600; color: var(--black); }
+    .todo-sub  { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+    /* ===== 会議モードバー ===== */
+    .meeting-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-radius: 4px; margin-bottom: 14px;
+      background: var(--primary-light); border: 1px solid var(--primary-mid);
+    }
+    .meeting-bar .label { font-size: 13px; font-weight: 700; color: var(--primary); }
+    .meeting-bar .sub   { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .toggle-sw {
+      width: 34px; height: 18px; background: var(--gray-light);
+      border-radius: 9px; position: relative; transition: background 0.2s;
+    }
+    .toggle-sw.on { background: var(--primary); }
+    .toggle-sw::after {
+      content: ''; position: absolute; width: 12px; height: 12px;
+      background: var(--white); border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s;
+    }
+    .toggle-sw.on::after { left: 19px; }
+    .toggle-label { font-size: 12px; font-weight: 700; color: var(--primary); }
+
+    /* ===== フィルタバー ===== */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 10px 14px; background: var(--white);
+      border: 1px solid var(--border); border-radius: 4px; margin-bottom: 14px;
+    }
+    .filter-bar select, .filter-bar input { width: auto; flex: 1; min-width: 110px; }
+    .filter-label { font-size: 11px; font-weight: 700; color: var(--gray); white-space: nowrap; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    /* ===== 画面切り替えスイッチャー ===== */
+    #switcher {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10); font-size: 12px; min-width: 210px;
+    }
+    #switcher .sw-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--gray); text-transform: uppercase; margin-bottom: 8px;
+    }
+    #switcher button {
+      display: block; width: 100%; text-align: left; padding: 6px 8px;
+      background: transparent; border: none; color: var(--gray-dark); cursor: pointer;
+      font-size: 12px; border-radius: 3px; transition: background 0.1s; font-family: inherit;
+    }
+    #switcher button:hover  { background: var(--gray-bg); color: var(--black); }
+    #switcher button.active { background: var(--primary-light); color: var(--primary); font-weight: 700; }
+
+    /* ===== 評価分布バー ===== */
+    .dist-bar { display: flex; gap: 3px; height: 28px; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+    .dist-seg {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<!-- =====================================================
+     画面1: ダッシュボード（社員）
+     ===================================================== -->
+<div id="screen-1" class="screen active">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">NEWONE</div>
+      <div class="logo-sub">MBO管理システム</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item active"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar av-teal" style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">田</div>
+      <div>
+        <div class="name">田中 一郎</div>
+        <div class="role">コンサルタント（等級3）</div>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">ダッシュボード</div>
+      <div class="topbar-right">
+        <span class="phase-label">目標設定フェーズ　2025/10/01 〜 2026/01/31</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="grid-3" style="margin-bottom:14px;">
+        <div class="stat-card">
+          <div class="stat-label">設定済み目標</div>
+          <div class="stat-value">3件</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">承認待ち</div>
+          <div class="stat-value" style="color:var(--warning);">1件</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">前期最終評価</div>
+          <div class="stat-value">B</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">ToDoリスト</div>
+            <span class="badge badge-red">2件</span>
+          </div>
+          <div class="card-body">
+            <div class="todo-item">
+              <div class="todo-dot dot-red"></div>
+              <div>
+                <div class="todo-text">目標の承認申請をしてください</div>
+                <div class="todo-sub">3件が未申請です　期限：2026/01/31</div>
+              </div>
+            </div>
+            <div class="todo-item">
+              <div class="todo-dot dot-teal"></div>
+              <div>
+                <div class="todo-text">山田さんの目標承認が待ちです</div>
+                <div class="todo-sub">チームリーダーとして承認が必要です　2日前</div>
+              </div>
+            </div>
+            <div class="todo-item">
+              <div class="todo-dot dot-green"></div>
+              <div>
+                <div class="todo-text">前期評価が確定しました</div>
+                <div class="todo-sub">2025年度 最終評価：B　確認してください</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">2026年度 目標サマリ</div>
+            <span class="badge badge-yellow">承認待ち</span>
+          </div>
+          <div class="card-body">
+            <div style="padding:10px;border:1px solid var(--border);border-radius:4px;margin-bottom:8px;">
+              <div class="flex-between mb-8">
+                <span class="goal-type-label type-kpi1">KPI連動①</span>
+                <span class="weight-text">50%</span>
+              </div>
+              <div style="font-size:13px;font-weight:700;">新規顧客獲得：年間15社</div>
+              <div class="text-muted mt-8">連動パターン：分解</div>
+            </div>
+            <div style="padding:10px;border:1px solid var(--border);border-radius:4px;margin-bottom:8px;">
+              <div class="flex-between mb-8">
+                <span class="goal-type-label type-kpi2">KPI連動②</span>
+                <span class="weight-text">30%</span>
+              </div>
+              <div style="font-size:13px;font-weight:700;">既存顧客売上：前年比110%</div>
+              <div class="text-muted mt-8">連動パターン：先行指標</div>
+            </div>
+            <div style="padding:10px;border:1px solid var(--border);border-radius:4px;">
+              <div class="flex-between mb-8">
+                <span class="goal-type-label type-org">組織貢献</span>
+                <span class="weight-text">20%</span>
+              </div>
+              <div style="font-size:13px;font-weight:700;">新人メンバーの3か月戦力化支援</div>
+              <div class="text-muted mt-8">連動パターン：チーム力向上</div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-primary btn-sm" onclick="go(2)">目標詳細を見る →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">前期評価サマリ（2025年度）</div>
+          <span class="badge badge-teal">確定済み</span>
+        </div>
+        <div class="card-body">
+          <div class="grid-3">
+            <div>
+              <div class="text-muted mb-8">MBOスコア</div>
+              <div style="font-size:22px;font-weight:700;color:var(--primary);">98.5点</div>
+            </div>
+            <div>
+              <div class="text-muted mb-8">最終評価</div>
+              <div style="font-size:22px;font-weight:700;color:var(--success);">B</div>
+            </div>
+            <div>
+              <div class="text-muted mb-8">昇給率</div>
+              <div style="font-size:22px;font-weight:700;color:var(--warning);">+1.5%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     画面2: 目標詳細・編集（社員）
+     ===================================================== -->
+<div id="screen-2" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item active"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar av-teal" style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">田</div>
+      <div><div class="name">田中 一郎</div><div class="role">コンサルタント（等級3）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">目標詳細・編集</div>
+      <div class="topbar-right">
+        <span class="phase-label">目標設定フェーズ</span>
+        <button class="btn btn-primary btn-sm">承認申請する</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="breadcrumb">ダッシュボード ＞ <span>2026年度 目標</span></div>
+
+      <div class="card mb-12">
+        <div class="card-body">
+          <div class="flex-between">
+            <div class="flex-center gap-12">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">田</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;">田中 一郎</div>
+                <div class="text-muted">コンサルタント（等級3）　営業ユニット</div>
+              </div>
+            </div>
+            <div class="flex-center gap-8">
+              <span class="badge badge-yellow">承認待ち</span>
+              <span class="text-muted">2026年度（2025/10/01〜2026/09/30）</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <span>i</span>
+        <div>現在<strong>目標設定フェーズ</strong>です。承認申請前は編集可能です。承認後の変更は修正申請が必要です。</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active">目標内容</div>
+        <div class="tab">バージョン履歴</div>
+        <div class="tab">ステータス履歴</div>
+      </div>
+
+      <!-- KPI① -->
+      <div class="goal-card">
+        <div class="goal-card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-kpi1">KPI連動①</span>
+            <span class="tag">分解</span>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="weight-text">ウェイト：50%</span>
+            <button class="btn btn-ghost btn-sm">編集</button>
+          </div>
+        </div>
+        <div class="goal-card-body">
+          <div class="goal-title">新規顧客獲得：年間15社</div>
+          <div class="goal-desc">営業チームの年間新規顧客目標30社のうち、個人担当として15社の新規獲得を目指す。毎月の商談件数・提案数を管理し四半期ごとに進捗を確認する。</div>
+          <div class="criteria">
+            <div class="text-sm text-bold mb-8" style="color:var(--gray);">達成基準</div>
+            <div class="criteria-row"><span class="criteria-label c-12">1.2 挑戦</span><span class="criteria-text">18社以上獲得し、平均受注単価が目標を10%以上超える</span></div>
+            <div class="criteria-row"><span class="criteria-label c-10">1.0 達成</span><span class="criteria-text">15社の新規顧客を獲得する（チーム目標の50%を一人で達成）</span></div>
+            <div class="criteria-row"><span class="criteria-label c-08">0.8 最低</span><span class="criteria-text">12社以上を獲得する</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI② -->
+      <div class="goal-card">
+        <div class="goal-card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-kpi2">KPI連動②</span>
+            <span class="tag">先行指標</span>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="weight-text">ウェイト：30%</span>
+            <button class="btn btn-ghost btn-sm">編集</button>
+          </div>
+        </div>
+        <div class="goal-card-body">
+          <div class="goal-title">既存顧客売上：前年比110%</div>
+          <div class="goal-desc">担当既存顧客10社に対し追加提案・アップセルを推進。6月末までに全顧客へサービス拡張の提案を実施することを先行指標として設定。</div>
+          <div class="criteria">
+            <div class="text-sm text-bold mb-8" style="color:var(--gray);">達成基準</div>
+            <div class="criteria-row"><span class="criteria-label c-12">1.2 挑戦</span><span class="criteria-text">前年比120%以上かつ新規サービス契約3件以上</span></div>
+            <div class="criteria-row"><span class="criteria-label c-10">1.0 達成</span><span class="criteria-text">前年比110%（担当顧客全体で+1,100万円）</span></div>
+            <div class="criteria-row"><span class="criteria-label c-08">0.8 最低</span><span class="criteria-text">前年比105%以上</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 組織貢献 -->
+      <div class="goal-card">
+        <div class="goal-card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-org">組織貢献</span>
+            <span class="tag">チーム力向上</span>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="weight-text">ウェイト：20%</span>
+            <button class="btn btn-ghost btn-sm">編集</button>
+          </div>
+        </div>
+        <div class="goal-card-body">
+          <div class="goal-title">新人メンバーの3か月戦力化支援</div>
+          <div class="goal-desc">10月入社の新人2名にOJT担当として月2回以上の1on1を実施。3か月以内に独立した顧客対応ができるレベルへの育成を目指す。</div>
+          <div class="criteria">
+            <div class="text-sm text-bold mb-8" style="color:var(--gray);">達成基準</div>
+            <div class="criteria-row"><span class="criteria-label c-12">1.2 挑戦</span><span class="criteria-text">2名とも2か月以内に独立対応可能。育成ノウハウをドキュメント化し部署展開</span></div>
+            <div class="criteria-row"><span class="criteria-label c-10">1.0 達成</span><span class="criteria-text">2名とも3か月以内に独立した顧客対応が可能になる</span></div>
+            <div class="criteria-row"><span class="criteria-label c-08">0.8 最低</span><span class="criteria-text">2名とも上長補助のもとで顧客対応できるレベルに到達</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-between mt-16">
+        <button class="btn btn-ghost" onclick="go(1)">← 戻る</button>
+        <div class="flex-center gap-8">
+          <button class="btn btn-ghost">下書き保存</button>
+          <button class="btn btn-primary">上長に承認申請する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     画面3: 目標一覧（自部署）+ 目標設定会議モード（部長）
+     ===================================================== -->
+<div id="screen-3" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item active"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar-sm av-green" style="width:30px;height:30px;border-radius:50%;font-size:12px;">鈴</div>
+      <div><div class="name">鈴木 部長</div><div class="role">シニアマネジャー（等級6）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">目標一覧（営業ユニット）</div>
+      <div class="topbar-right">
+        <span class="phase-label">目標設定フェーズ</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="meeting-bar">
+        <div>
+          <div class="label">目標設定会議モード</div>
+          <div class="sub">ONにすると等級3以上（MBO評価対象）のメンバーのみ表示します</div>
+        </div>
+        <div class="toggle-wrap" onclick="toggleMeeting(this)">
+          <div class="toggle-sw on" id="t1"></div>
+          <span class="toggle-label" id="t1label">ON（等級3以上のみ）</span>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <span class="filter-label">評価期</span>
+        <select><option>2026年度</option><option>2025年度</option></select>
+        <span class="filter-label">ステータス</span>
+        <select><option>すべて</option><option>承認待ち</option><option>承認済み</option><option>差し戻し</option></select>
+        <input type="text" placeholder="社員名・目標タイトルで検索">
+        <button class="btn btn-ghost btn-sm">絞り込み</button>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>社員名</th>
+              <th>等級</th>
+              <th>目標サマリ</th>
+              <th>ステータス</th>
+              <th>自己評価</th>
+              <th>上長評価</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="flex-center gap-8">
+                  <div class="avatar-sm av-teal">田</div>
+                  <div>
+                    <div style="font-weight:600;">田中 一郎</div>
+                    <div class="text-muted">コンサルタント</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td>
+                <div class="text-sm">① 新規顧客獲得15社</div>
+                <div class="text-sm">② 既存顧客売上110%</div>
+                <div class="text-sm">③ 新人メンバー育成</div>
+              </td>
+              <td><span class="badge badge-yellow">承認待ち</span></td>
+              <td><span class="badge badge-gray">未提出</span></td>
+              <td><span class="badge badge-gray">未提出</span></td>
+              <td>
+                <div class="flex-center gap-6" style="flex-direction:column;align-items:flex-start;">
+                  <button class="btn btn-ghost btn-sm" onclick="go(2)">詳細</button>
+                  <button class="btn btn-primary btn-sm">承認</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="flex-center gap-8">
+                  <div class="avatar-sm av-green">山</div>
+                  <div>
+                    <div style="font-weight:600;">山田 花子</div>
+                    <div class="text-muted">シニアコンサルタント</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-teal">等級4</span></td>
+              <td>
+                <div class="text-sm">① チーム売上1.8億達成</div>
+                <div class="text-sm">② パートナー企業開拓3社</div>
+                <div class="text-sm">③ 部署横断PJ推進</div>
+              </td>
+              <td><span class="badge badge-green">承認済み</span></td>
+              <td><span class="badge badge-gray">未提出</span></td>
+              <td><span class="badge badge-gray">未提出</span></td>
+              <td>
+                <div class="flex-center gap-6" style="flex-direction:column;align-items:flex-start;">
+                  <button class="btn btn-ghost btn-sm">詳細</button>
+                  <button class="btn btn-warning btn-sm">会議差し戻し</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="flex-center gap-8">
+                  <div class="avatar-sm av-purple">佐</div>
+                  <div>
+                    <div style="font-weight:600;">佐藤 次郎</div>
+                    <div class="text-muted">コンサルタント</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td>
+                <div class="text-sm">① 新規開拓10社</div>
+                <div class="text-sm">② 提案数月8件以上</div>
+                <div class="text-sm">③ 勉強会開催4回</div>
+              </td>
+              <td><span class="badge badge-red">会議差し戻し</span></td>
+              <td><span class="badge badge-gray">未提出</span></td>
+              <td><span class="badge badge-gray">未提出</span></td>
+              <td><button class="btn btn-ghost btn-sm">詳細</button></td>
+            </tr>
+            <tr style="opacity:0.45;">
+              <td>
+                <div class="flex-center gap-8">
+                  <div class="avatar-sm av-gray">木</div>
+                  <div>
+                    <div style="font-weight:600;">木村 三郎</div>
+                    <div class="text-muted">アナリスト</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-gray">等級2</span></td>
+              <td><div class="text-muted text-sm">会議対象外（等級2）</div></td>
+              <td><span class="badge badge-gray">保存済み</span></td>
+              <td>—</td>
+              <td>—</td>
+              <td><button class="btn btn-ghost btn-sm">詳細</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-muted" style="font-size:11px;">会議モードON時：等級3以上のみ表示（4名中3名）。淡色行は対象外。</div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     画面4: 中間振り返り（社員）
+     ===================================================== -->
+<div id="screen-4" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item active"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar av-teal" style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">田</div>
+      <div><div class="name">田中 一郎</div><div class="role">コンサルタント（等級3）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">中間振り返り（2026年2月）</div>
+      <div class="topbar-right">
+        <span class="phase-label">中間振り返りフェーズ　2026/02/01〜02/28</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="alert alert-warning">
+        <span>!</span>
+        <div>
+          <strong>上長から目標修正の依頼があります</strong><br>
+          <span style="font-size:12px;">鈴木部長より：「目標②の既存顧客売上について、今期のマーケット状況を踏まえて達成基準を見直してください。特に1.0の水準を現実的な数値に修正することを検討してください。」</span><br>
+          <button class="btn btn-warning btn-sm" style="margin-top:8px;">修正申請を起票する →</button>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <span>i</span>
+        <div>各目標の現在の進捗状況とコメントを入力してください。目標の修正が必要な場合は「修正申請を起票する」から申請できます。</div>
+      </div>
+
+      <!-- 目標①振り返り -->
+      <div class="card">
+        <div class="card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-kpi1">KPI連動①</span>
+            <span style="font-weight:700;font-size:13px;">新規顧客獲得：年間15社</span>
+          </div>
+          <span class="badge badge-green">順調</span>
+        </div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div>
+              <div class="form-row">
+                <label>進捗ステータス</label>
+                <select><option>順調（ON_TRACK）</option><option>進行中</option><option>要注意</option></select>
+              </div>
+              <div class="progress-wrap">
+                <div class="flex-between mb-8"><span class="text-muted">9社 / 目標15社</span><span style="font-size:12px;font-weight:700;color:var(--primary);">60%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:60%;background:var(--success);"></div></div>
+              </div>
+            </div>
+            <div>
+              <div class="form-row">
+                <label>進捗コメント<span class="required">*</span></label>
+                <textarea>Q1は9社獲得できており順調です。パイプラインも十分に積み上がっています。</textarea>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--gray-bg);padding:10px;border-radius:4px;margin-top:12px;">
+            <div class="text-sm text-bold mb-8" style="color:var(--success);">上長フィードバック（鈴木部長）</div>
+            <div class="text-sm" style="color:var(--gray-dark);">良いペースです。下半期は競合が動いてくるので、早期クローズを意識してください。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 目標②振り返り（修正依頼あり） -->
+      <div class="card" style="border-color:var(--warning);">
+        <div class="card-header" style="background:#fef9e7;">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-kpi2">KPI連動②</span>
+            <span style="font-weight:700;font-size:13px;">既存顧客売上：前年比110%</span>
+          </div>
+          <span class="badge badge-orange">修正依頼あり</span>
+        </div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div>
+              <div class="form-row">
+                <label>進捗ステータス</label>
+                <select><option>要注意（AT_RISK）</option><option>順調</option></select>
+              </div>
+              <div class="progress-wrap">
+                <div class="flex-between mb-8"><span class="text-muted">前年比103% / 目標110%</span><span style="font-size:12px;font-weight:700;color:var(--warning);">35%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:35%;background:var(--warning);"></div></div>
+              </div>
+            </div>
+            <div>
+              <div class="form-row">
+                <label>進捗コメント<span class="required">*</span></label>
+                <textarea>業界全体の発注控えにより既存顧客の増額が困難な状況です。追加提案は継続しています。</textarea>
+              </div>
+            </div>
+          </div>
+          <div class="alert alert-warning" style="margin-top:12px;margin-bottom:0;">
+            <span>!</span>
+            <div>
+              <strong>修正依頼：</strong>達成基準を現在のマーケット状況に合わせて見直してください。
+              <div style="margin-top:6px;"><button class="btn btn-warning btn-sm">修正申請を起票する →</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 目標③振り返り -->
+      <div class="card">
+        <div class="card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-org">組織貢献</span>
+            <span style="font-weight:700;font-size:13px;">新人メンバーの3か月戦力化支援</span>
+          </div>
+          <span class="badge badge-green">達成</span>
+        </div>
+        <div class="card-body">
+          <div class="grid-2">
+            <div>
+              <div class="form-row">
+                <label>進捗ステータス</label>
+                <select><option>順調（ON_TRACK）</option></select>
+              </div>
+              <div class="progress-wrap">
+                <div class="flex-between mb-8"><span class="text-muted">2名とも独立対応可能</span><span style="font-size:12px;font-weight:700;color:var(--success);">100%</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--success);"></div></div>
+              </div>
+            </div>
+            <div>
+              <div class="form-row">
+                <label>進捗コメント<span class="required">*</span></label>
+                <textarea>2名とも11月末時点で独立した顧客対応が可能になりました。</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-between mt-16">
+        <button class="btn btn-ghost">下書き保存</button>
+        <button class="btn btn-primary">振り返りを提出する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     画面5: 承認・申請管理（部長）
+     ===================================================== -->
+<div id="screen-5" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item active"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar-sm av-green" style="width:30px;height:30px;border-radius:50%;font-size:12px;display:flex;align-items:center;justify-content:center;color:#fff;">鈴</div>
+      <div><div class="name">鈴木 部長</div><div class="role">シニアマネジャー（等級6）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">承認・申請管理</div>
+      <div class="topbar-right"><span class="badge badge-red">未対応 3件</span></div>
+    </div>
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active">承認待ち <span class="badge badge-red" style="margin-left:4px;">3</span></div>
+        <div class="tab">承認済み</div>
+        <div class="tab">差し戻し済み</div>
+        <div class="tab">会議差し戻し済み</div>
+        <div class="tab">修正依頼済み <span class="badge badge-orange" style="margin-left:4px;">1</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">承認待ち（3件）</div></div>
+
+        <!-- 申請1 -->
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border);">
+          <div class="flex-between mb-12">
+            <div class="flex-center gap-8">
+              <div class="avatar-sm av-teal">田</div>
+              <div>
+                <div style="font-weight:700;">田中 一郎</div>
+                <div class="text-muted">コンサルタント（等級3）　営業ユニット</div>
+              </div>
+            </div>
+            <div class="flex-center gap-8">
+              <span class="badge badge-teal">目標設定承認</span>
+              <span class="text-muted">2025/10/15 申請</span>
+            </div>
+          </div>
+          <div style="background:var(--gray-bg);padding:10px;border-radius:4px;margin-bottom:12px;font-size:12px;color:var(--gray-dark);">
+            ① 新規顧客獲得15社（50%）　② 既存顧客売上110%（30%）　③ 新人育成（20%）
+          </div>
+          <div class="flex-between">
+            <button class="btn btn-ghost btn-sm" onclick="go(2)">目標詳細を確認 →</button>
+            <div class="flex-center gap-8">
+              <button class="btn btn-danger btn-sm">差し戻し</button>
+              <button class="btn btn-success btn-sm">承認する</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 申請2: 修正申請 -->
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border);">
+          <div class="flex-between mb-12">
+            <div class="flex-center gap-8">
+              <div class="avatar-sm av-purple">佐</div>
+              <div>
+                <div style="font-weight:700;">佐藤 次郎</div>
+                <div class="text-muted">コンサルタント（等級3）　営業ユニット</div>
+              </div>
+            </div>
+            <div class="flex-center gap-8">
+              <span class="badge badge-orange">目標修正申請</span>
+              <span class="text-muted">2026/02/10 申請</span>
+            </div>
+          </div>
+          <div style="background:#fef9e7;padding:10px;border-radius:4px;border-left:3px solid var(--warning);margin-bottom:12px;font-size:12px;">
+            <div style="font-weight:700;margin-bottom:4px;">修正理由：KPI方針変更（KPI_CHANGE）</div>
+            目標②「既存顧客売上」の達成基準修正。前年比110% → 105%。マーケット環境の変化により上位KPIが修正されたため。
+          </div>
+          <div class="flex-between">
+            <div class="flex-center gap-8">
+              <button class="btn btn-ghost btn-sm">修正前</button>
+              <button class="btn btn-ghost btn-sm">修正後</button>
+            </div>
+            <div class="flex-center gap-8">
+              <button class="btn btn-danger btn-sm">差し戻し</button>
+              <button class="btn btn-success btn-sm">承認する</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 申請3 -->
+        <div style="padding:16px 18px;">
+          <div class="flex-between mb-12">
+            <div class="flex-center gap-8">
+              <div class="avatar-sm av-orange">中</div>
+              <div>
+                <div style="font-weight:700;">中村 四郎</div>
+                <div class="text-muted">コンサルタント（等級3）　営業ユニット</div>
+              </div>
+            </div>
+            <div class="flex-center gap-8">
+              <span class="badge badge-teal">目標設定承認</span>
+              <span class="text-muted">2025/10/20 申請</span>
+            </div>
+          </div>
+          <div style="background:var(--gray-bg);padding:10px;border-radius:4px;margin-bottom:12px;font-size:12px;color:var(--gray-dark);">
+            ① 新規顧客開拓8社（50%）　② 提案資料品質向上（30%）　③ 採用面接参加6回（20%）
+          </div>
+          <div class="flex-between">
+            <button class="btn btn-ghost btn-sm">目標詳細を確認 →</button>
+            <div class="flex-center gap-8">
+              <button class="btn btn-danger btn-sm">差し戻し</button>
+              <button class="btn btn-success btn-sm">承認する</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     画面6: 評価調整・確定（HR）
+     ===================================================== -->
+<div id="screen-6" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item active"><span class="icon">≡</span>評価調整・確定</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar-sm" style="width:30px;height:30px;border-radius:50%;background:#6941c6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">人</div>
+      <div><div class="name">人事 担当者</div><div class="role">HRパートナー（等級4）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">評価調整・確定（2026年度）</div>
+      <div class="topbar-right">
+        <span class="phase-label">評価調整フェーズ　2026/10/01〜10/31</span>
+        <button class="btn btn-primary btn-sm">全員確定する</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="alert alert-info">
+        <span>i</span>
+        <div>最終評価スコア ＝ MBOスコア ＋ 360度成果加算（最大+10pt）＋ 360度クレド加算（+3pt）。スコアを確認し総合評価（S/A/B/C/D）を設定してください。</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:14px;">
+        <div class="stat-card"><div class="stat-label">評価対象者</div><div class="stat-value">12名</div></div>
+        <div class="stat-card"><div class="stat-label">確定済み</div><div class="stat-value" style="color:var(--success);">8名</div></div>
+        <div class="stat-card"><div class="stat-label">未確定</div><div class="stat-value" style="color:var(--warning);">4名</div></div>
+      </div>
+
+      <!-- 評価分布 -->
+      <div class="card mb-12">
+        <div class="card-header"><div class="card-title">評価分布（目安：S 5% / A 15% / B 60% / C 15% / D 5%）</div></div>
+        <div class="card-body">
+          <div class="dist-bar">
+            <div class="dist-seg" style="flex:1;background:#f7dc6f;color:#7d6608;">S: 1</div>
+            <div class="dist-seg" style="flex:2;background:var(--primary-mid);color:var(--primary-dark);">A: 2</div>
+            <div class="dist-seg" style="flex:7;background:#a9dfbf;color:#1a6639;">B: 7</div>
+            <div class="dist-seg" style="flex:1;background:#f5cba7;color:#7d3c00;">C: 1</div>
+            <div class="dist-seg" style="flex:1;background:#f1948a;color:#7b241c;">D: 1</div>
+          </div>
+          <div class="text-muted" style="font-size:11px;">現在：S 8.3% / A 16.7% / B 58.3% / C 8.3% / D 8.3%　　目安分布との乖離を確認してください</div>
+        </div>
+      </div>
+
+      <!-- 評価テーブル -->
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>社員名</th>
+              <th>等級</th>
+              <th style="text-align:right;">MBOスコア</th>
+              <th style="text-align:right;">成果加算</th>
+              <th style="text-align:right;">クレド加算</th>
+              <th style="text-align:right;">最終スコア</th>
+              <th>総合評価</th>
+              <th>調整メモ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-teal">田</div>田中 一郎</div></td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td style="text-align:right;font-weight:700;">98.5</td>
+              <td style="text-align:right;color:var(--success);font-weight:700;">+10</td>
+              <td style="text-align:right;color:var(--success);font-weight:700;">+3</td>
+              <td style="text-align:right;font-size:16px;font-weight:700;color:var(--primary);">111.5</td>
+              <td><select style="width:56px;"><option>S</option><option selected>A</option><option>B</option><option>C</option><option>D</option></select></td>
+              <td><input type="text" placeholder="メモ" style="width:110px;"></td>
+              <td><button class="btn btn-success btn-sm">確定</button></td>
+            </tr>
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-green">山</div>山田 花子</div></td>
+              <td><span class="badge badge-teal">等級4</span></td>
+              <td style="text-align:right;font-weight:700;">105.0</td>
+              <td style="text-align:right;color:var(--success);font-weight:700;">+10</td>
+              <td style="text-align:right;color:var(--success);font-weight:700;">+3</td>
+              <td style="text-align:right;font-size:16px;font-weight:700;color:var(--primary);">118.0</td>
+              <td><select style="width:56px;"><option selected>S</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+              <td><input type="text" placeholder="メモ" style="width:110px;"></td>
+              <td><button class="btn btn-success btn-sm">確定</button></td>
+            </tr>
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-purple">佐</div>佐藤 次郎</div></td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td style="text-align:right;font-weight:700;">82.0</td>
+              <td style="text-align:right;color:var(--gray);">—</td>
+              <td style="text-align:right;color:var(--gray);">—</td>
+              <td style="text-align:right;font-size:16px;font-weight:700;color:var(--gray-dark);">82.0</td>
+              <td><select style="width:56px;"><option>S</option><option>A</option><option>B</option><option selected>C</option><option>D</option></select></td>
+              <td><input type="text" value="部門長確認済み" style="width:110px;"></td>
+              <td><button class="btn btn-ghost btn-sm">確定</button></td>
+            </tr>
+            <tr style="background:#fffdf5;">
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-orange">中</div>中村 四郎</div></td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td style="text-align:right;color:var(--gray);">—</td>
+              <td style="text-align:right;color:var(--gray);">—</td>
+              <td style="text-align:right;color:var(--gray);">—</td>
+              <td style="text-align:right;font-size:16px;font-weight:700;color:var(--gray);">—</td>
+              <td><select style="width:56px;background:#fffdf5;"><option value="">未</option><option>S</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+              <td><input type="text" placeholder="上長評価未完了" style="width:110px;background:#fffdf5;"></td>
+              <td><button class="btn btn-ghost btn-sm" disabled style="opacity:0.35;">確定</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card-footer">
+          <div class="flex-between">
+            <span class="text-muted" style="font-size:11px;">黄色行は上長評価未完了のため確定不可</span>
+            <button class="btn btn-ghost btn-sm">CSVエクスポート</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== スイッチャー ===== -->
+<div id="switcher">
+  <div class="sw-title">画面切り替え</div>
+  <button class="active" onclick="go(1)">1. ダッシュボード（社員）</button>
+  <button onclick="go(2)">2. 目標詳細・編集（社員）</button>
+  <button onclick="go(3)">3. 目標一覧（部長）</button>
+  <button onclick="go(4)">4. 中間振り返り（社員）</button>
+  <button onclick="go(5)">5. 承認・申請管理（部長）</button>
+  <button onclick="go(6)">6. 評価調整・確定（HR）</button>
+</div>
+
+<script>
+  function go(n) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + n).classList.add('active');
+    document.querySelectorAll('#switcher button').forEach((b, i) => b.classList.toggle('active', i === n - 1));
+    window.scrollTo(0, 0);
+  }
+  function toggleMeeting(wrap) {
+    const sw = document.getElementById('t1');
+    const lb = document.getElementById('t1label');
+    sw.classList.toggle('on');
+    lb.textContent = sw.classList.contains('on') ? 'ON（等級3以上のみ）' : 'OFF（全員表示）';
+  }
+</script>
+</body>
+</html>

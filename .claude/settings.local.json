@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew install:*)",
+      "WebFetch(domain:new-one.co.jp)",
+      "Bash(open:*)"
+    ]
+  }
+}
