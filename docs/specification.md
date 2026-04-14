@@ -1,8 +1,8 @@
 # 社内MBO管理システム 仕様書
 
-**バージョン**: 1.4
+**バージョン**: 1.5
 **作成日**: 2026-03-27
-**最終更新日**: 2026-03-27
+**最終更新日**: 2026-04-14
 **対象読者**: 開発担当者、プロジェクトマネージャー、人事担当者
 
 ---
@@ -16,6 +16,7 @@
 | 1.2 | 2026-03-27 | 実運用の実態に合わせ等級1〜2の目標設定可否を修正。等級1〜2も目標入力は可能だが承認フロー・評価対象外として位置づけ。`is_mbo_target`の意味を「承認フロー・評価の対象か否か」に明確化。目標設定会議向けフィルタ（等級3以上絞り込み）を機能仕様に追加。 |
 | 1.3 | 2026-03-27 | 承認後の自由編集禁止をAPIレベルで明記。目標設定会議での部長差し戻し機能（F-19）を新規追加。`goal_sets.status`に`MEETING_REJECTED`を追加。S-04・S-15・S-09の画面仕様を更新。APIに差し戻しエンドポイントを追加。ステータス遷移図を更新。 |
 | 1.4 | 2026-03-27 | 中間振り返り時の目標修正フローを拡充。社員起点・上長起点の両方のフローをF-06・F-07に明記。上長からの修正依頼フラグ機能を追加。差し戻し→再申請ループを明記。`approval_requests`に`REVISION_REJECTED`ステータスと`REVISION_REQUEST`種別を追加。S-05・S-15の画面仕様を更新。 |
+| 1.5 | 2026-04-14 | 承認フローを4段階（本人→上長→事業部長→経営）に拡充。目標修正申請も同様のフローを適用。イレギュラー社員対応（休職・復職・中途・退職）に向けた期中目標設定・期中評価クローズ・評価対象外フラグ・対象月数管理を追加。SmartHRからのCSV連携（人事属性更新）機能を定義。データモデルに承認多段化・イレギュラー対応用のカラムを追加。 |
 
 ---
 
@@ -61,23 +62,34 @@
 
 | 雇用形態 | 等級 | 目標入力 | 承認フロー | MBO評価 | 360度評価 | 備考 |
 |---------|------|---------|----------|---------|---------|------|
-| 正社員 | 等級3以上 | 可 | 対象 | 対象（年1回/7〜9月） | 対象 | 本システムのメイン利用者。目標設定会議での確認対象 |
-| 正社員 | 等級1〜2 | 可 | **対象外** | **対象外** | 対象（半期に一度/2・7月） | 目標は入力・共有できるが、承認フローには乗らず評価にも使用しない |
+| 正社員 | 等級3以上 | 可 | **4段階承認** | 対象（年1回/7〜9月） | 対象 | 本システムのメイン利用者。本人→上長→事業部長→経営承認のフロー |
+| 正社員 | 等級1〜2 | 可 | 対象外 | 対象外 | 対象（半期に一度/2・7月） | 目標は入力・共有できるが、承認フローには乗らず評価にも使用しない |
 | 契約社員 | - | 可 | 対象外 | 対象外（契約更新時に上長評価） | 育成目的で対象 | 契約更新タイミングで上長が昇降給評価を実施 |
 | アシスタント | - | 可 | 対象外 | 対象外（契約更新時に上長評価） | 正社員の評価回答対象外 | 360度評価の回答者にはなれない |
 
-> **等級1〜2の目標について**: 評価には使用しないが、自身の行動指針として目標を持つ・他の社員と共有するという文化的目的で入力を許可する。目標設定会議（部長陣による確認）は等級3以上のみを対象とする。
+#### 承認フローの多段化
 
-#### 中途入社者の扱い
+目標設定および目標修正申請は、以下の4段階のステップを経て最終確定（`APPROVED`）される。
+1. **本人入力・申請**: ステータスが `PENDING_MANAGER` に遷移。
+2. **直属上長（1次評価者）承認**: ステータスが `PENDING_DIVISION` に遷移。
+3. **事業部長（2次評価者）承認**: ステータスが `PENDING_EXECUTIVE` に遷移。
+4. **経営承認（最終承認）**: ステータスが `APPROVED` に遷移。
 
-- 入社6か月後の2月または7月に初回評価を実施する
-- 初回評価では**昇格判断のみ**行い、昇給は実施しない
-- システム上は評価期の途中参加として扱い、入社日を `organization_memberships.valid_from` に記録する
+#### イレギュラー社員の扱い
 
-#### 休職者の扱い
+休職・復職・中途入社・退職の各ケースについて、以下の通り「評価対象月数」と「評価対象外フラグ」を用いてシステム制御を行う。
 
-- 評価対象期間における実勤務期間が**6か月未満**の場合は評価対象外とする
-- 実勤務期間が**6か月以上**の場合は昇給額を在籍月数に応じて按分し、復職後の月額給与に反映する
+- **評価対象外（フラグ: `is_evaluation_exempt`）**:
+  - 評価対象期間における実勤務期間が**6か月未満**の場合は評価対象外とする。
+  - 目標設定は可能（文化・共有目的）だが、評価スコアの算出や昇降給判定からは除外される。
+- **実勤務期間のカウント**:
+  - 各社員の評価セットごとに `target_months` (対象月数) を保持し、昇給額の按分計算等に利用する。
+- **期中目標設定**:
+  - 復職者や中途入社者は、標準の目標設定フェーズ（10月）以外でも、入社/復職タイミングで目標設定を可能とする。
+- **期中クローズ（評価の早期完了）**:
+  - 休職予定者（実勤務6か月以上）や退職者は、期末を待たずにその時点までの自己評価・上長評価を実施し、プロセスをクローズできる。
+- **退職者**:
+  - 人事担当者がシステム上でプロセスを強制終了（クローズ）できる仕組みを提供する。
 
 #### 評価サイクルと目標構成
 
@@ -256,7 +268,7 @@ src/
 
 ### 4.1 機能一覧
 
-> **v1.1 更新**: F-17（目標設定ガイダンス）、F-18（評価バイアス警告）を追加した。
+> **v1.5 更新**: 承認フローの多段化（4段階）への対応、F-20（イレギュラー社員対応）、F-21（SmartHR CSV連携）を追加した。
 
 | 機能ID | 機能名 | 優先度 | 説明 |
 |--------|--------|--------|------|
@@ -264,8 +276,8 @@ src/
 | F-02 | ユーザー管理 | 必須 | 社員情報・ロール・等級・雇用形態の管理 |
 | F-03 | 組織管理 | 必須 | 部署・組織構造の管理（組織変更対応） |
 | F-04 | 評価期管理 | 必須 | 評価サイクルの期間・フェーズ管理 |
-| F-05 | 目標設定 | 必須 | MBO目標の新規設定・承認フロー |
-| F-06 | 目標修正申請 | 必須 | 期中の目標修正申請・承認フロー |
+| F-05 | 目標設定 | 必須 | MBO目標の新規設定・4段階承認フロー（本人→上長→事業部長→経営） |
+| F-06 | 目標修正申請 | 必須 | 期中の目標修正申請・4段階承認フロー |
 | F-07 | 中間振り返り | 必須 | 2月時点の進捗入力・コメント |
 | F-08 | 自己評価入力 | 必須 | 期末の自己評価スコア・コメント入力 |
 | F-09 | 上長評価入力 | 必須 | 上長による評価スコア・コメント入力 |
@@ -278,7 +290,9 @@ src/
 | F-16 | 監査ログ | 推奨 | 重要操作のログ記録・閲覧 |
 | F-17 | 目標設定ガイダンス | 推奨 | 目標入力画面で連動パターン・達成基準の説明をインラインヘルプとして表示 |
 | F-18 | 評価バイアス警告 | 推奨 | 上長評価入力時に評価バイアス五大症状のガイダンスを表示 |
-| F-19 | 目標設定会議差し戻し | 必須 | 部長以上が承認済み目標を会議差し戻し（`MEETING_REJECTED`）できる。差し戻しコメント必須 |
+| F-19 | 目標設定会議差し戻し | 必須 | 最終承認前の「目標設定会議」等で部長以上が承認中または承認済み目標を差し戻しできる機能 |
+| F-20 | イレギュラー社員対応 | 必須 | 休職・復職・退職時の期中クローズ、期中目標設定、対象月数管理 |
+| F-21 | SmartHR CSV連携 | 必須 | SmartHRから排出されたCSVによる、等級・雇用形態・1次/2次評価者の更新機能 |
 
 ### 4.2 主要機能の詳細
 
@@ -321,38 +335,38 @@ src/
 | 1.0 | 達成目標 | KPIと等級定義から、今回目指すべきストレッチな目標。できるかギリギリのライン |
 | 0.8 | 最低目標 | 1.0の約8割。着実に努力すれば達成可能なレベル |
 
-- **等級3以上（`is_mbo_target = TRUE`）**: 設定後、上長に承認申請を行う（ステータス: `DRAFT` → `PENDING_APPROVAL`）。上長が承認すると `APPROVED` に遷移。差し戻しの場合は `REJECTED` → 修正後再申請
-- **等級1〜2（`is_mbo_target = FALSE`）**: 承認フローなし。入力・保存後は即 `SAVED` ステータスになる。承認申請ボタンは表示しない
+- **等級3以上（`is_mbo_target = TRUE`）**: 設定後、上長に承認申請を行う。以下の4段階フローを経て確定する。
+  1. 社員が申請 → `PENDING_MANAGER`（直属上長承認待ち）
+  2. 直属上長が承認 → `PENDING_DIVISION`（事業部長承認待ち）
+  3. 事業部長が承認 → `PENDING_EXECUTIVE`（経営承認待ち）
+  4. 経営が承認 → `APPROVED`（確定）
+- 各段階で差し戻しが可能。差し戻された場合は `REJECTED` ステータスとなり、社員が修正して再申請する。
+- **等級1〜2（`is_mbo_target = FALSE`）**: 承認フローなし。入力・保存後は即 `SAVED` ステータスになる。承認申請ボタンは表示しない。
 
-> **承認後の編集制限（v1.3追加）**: `APPROVED` または `MEETING_REJECTED` 以外のステータスでは、社員による目標内容の自由編集を禁止する。APIの `PATCH /api/goals/:goalSetId` は `DRAFT` および `REJECTED`（上長差し戻し後）のみ受け付け、それ以外のステータスでは `403 Forbidden` を返す。目標の修正が必要な場合は、必ず差し戻し（F-19）または目標修正申請（F-06）を経由する。
+> **承認後の編集制限（v1.3追加・v1.5更新）**: `APPROVED` または `MEETING_REJECTED` 以外のステータス（承認プロセス進行中を含む）では、社員による目標内容の自由編集を禁止する。APIの `PATCH /api/goals/:goalSetId` は `DRAFT` および `REJECTED`（差し戻し後）のみ受け付け、それ以外のステータスでは `403 Forbidden` を返す。
 
 #### F-06 目標修正申請
 
-> **v1.4 更新**: 社員起点・上長起点の両フローと、差し戻し→再申請ループを明記した。
+> **v1.5 更新**: 目標設定と同様に4段階の承認フローを適用。また、復職者等の「期中目標設定」および休職予定者等の「期中クローズ」についても本機能の枠組みを利用する。
 
 以下のいずれかの条件に該当する場合のみ申請可能（修正理由の選択・記入が必須）。
 
 | 修正理由コード | 内容 |
 |----------------|------|
 | `KPI_CHANGE` | 会社全体または部署KPIの方針変更 |
-| `STANDARD_DEVIATION` | 前例のない取り組みで達成基準が大きく乖離した（半分や2倍など） |
+| `STANDARD_DEVIATION` | 前例のない取り組みで達成基準が大きく乖離した |
 | `ROLE_CHANGE` | 周囲の退職・休職により役割が大きく変更された |
+| `MIDTERM_ENTRY` | 中途入社・復職に伴う期中目標設定（v1.5追加） |
+| `EARLY_CLOSURE` | 休職・退職に伴う期中クローズ（評価の早期実施）（v1.5追加） |
 
 **フロー① 社員起点（社員が自発的に修正申請する場合）:**
 
 ```
-社員が修正案を作成・申請（REVISION_PENDING）
+社員が修正案を作成・申請
   ↓
-上長が修正案を確認
-  ├ 適切 → 承認（REVISION_APPROVED）
-  │           ↓
-  │         新バージョンとして確定。旧バージョンは履歴保持
-  │
-  └ 不適切 → 差し戻し（REVISION_REJECTED）＋差し戻しコメント入力必須
-                ↓ 社員に通知
-              社員が修正案を修正して再申請
-                ↓
-              上長が再確認 → 承認 or 再差し戻し（繰り返し可）
+4段階承認フロー（本人→上長→事業部長→経営）
+  ├ すべて承認 → 確定（旧バージョンは履歴保持）
+  └ いずれかで差し戻し → 社員が再修正して再申請
 ```
 
 **フロー② 上長起点（上長が修正を指示する場合）:**
@@ -515,19 +529,27 @@ APPROVED（確定）
 | `REVISION_REQUEST` | 上長からの修正依頼（v1.4追加。社員への指示起点） |
 | `MEETING_REJECTION` | 目標設定会議での差し戻し（v1.3追加） |
 
-### 4.3 特殊ケースの評価ルール（新規追加）
+### 4.3 特殊ケースの評価ルール（v1.5 更新）
 
-> **v1.1 新規追加**: ガイドラインに定義された特殊ケースのシステム上の扱いを整理した。
+> **v1.5 更新**: 休職・復職・中途・退職パターンの詳細な扱いを整理した。
 
-| 対象 | 目標入力 | 承認フロー | 評価タイミング | MBO評価 | 360度評価 | 昇降給・特記事項 |
-|------|---------|----------|------------|---------|---------|----------------|
-| 正社員（等級3以上） | 可 | 対象 | 8〜9月（自己評価・上長評価）、10月（調整・確定） | 対象 | 対象（7月） | MBOスコア + 360度スコア合算で昇降給 |
-| 正社員（等級1〜2） | 可 | **対象外** | 2月・7月（半期に一度） | 対象外 | 対象 | 360度「成果」スコアのみで昇降給。目標は共有・参照のみ |
-| 中途入社者 | 入社6か月後の直近2月または7月 | 対象外（初回のみ） | 対象外（初回のみ） | 昇格判断のみ実施。昇給なし |
-| 休職者（実勤務6か月未満） | - | 対象外 | 対象外 | 評価対象期間から除外。システム上は`is_evaluation_exempt=TRUE`フラグで管理 |
-| 休職者（実勤務6か月以上） | 通常通り | 対象 | 対象 | 昇給額を実勤務月数/12か月で按分して復職後に反映 |
-| 契約社員 | 契約更新タイミング | 対象外 | 育成目的で対象 | 契約更新時に上長が評価を実施し昇降給。MBOシステムは参照のみ |
-| アシスタント | 契約更新タイミング | 対象外 | 対象（受ける側のみ） | 360度評価の回答者にはなれない。契約更新時に上長評価 |
+| ケース | 目標設定 | 評価の扱い | 昇給・按分 | 特記事項 |
+|-------|---------|-----------|-----------|---------|
+| **休職に入る** | 通常通り実施 | 勤務6か月以上：期中クローズ<br>勤務6か月未満：評価対象外 | 勤務月数/12で按分して復職後反映 | 休職前に自己・上長評価を実施しクローズ可能 |
+| **復職する** | 期中目標設定 | 勤務6か月以上：評価対象<br>勤務6か月未満：評価対象外 | 勤務月数/12で按分 | 復職タイミングで目標を立て、対象月数 (`target_months`) を記録 |
+| **中途入社** | 期中目標設定 | 入社6か月後から対象 | 初回は昇格判断のみ | 入社日を `organization_memberships.join_date` に記録し、6か月経過を判定 |
+| **退職する** | - | 人事にてクローズ処理 | 対象外（原則） | 最終勤務日までの自己・上長評価を必要に応じ実施し、HRがプロセスを完了する |
+
+**評価対象外（Exempt）の条件:**
+
+- 評価対象期間（10月〜翌年9月）における実勤務期間が**6か月（180日）未満**の場合、目標設定は行うが、`goal_sets.is_evaluation_exempt = TRUE` とする。
+- このフラグが立っている場合、評価スコアの算出（F-10）からは除外される。
+- **対象月数 (`target_months`)**: 昇給按分等のため、全社員の `goal_sets` に整数値（1〜12）として記録する。
+
+**期中目標設定および期中クローズの操作:**
+
+- **期中目標設定**: 新入社員や復職者は、HRまたは上長の許可を得て、標準の目標設定フェーズ以外でも `F-05` に基づく入力・承認フローを開始できる。
+- **期中クローズ**: 休職や退職を控える社員は、標準の評価フェーズ（8〜9月）以外でも、`F-08`（自己評価）および `F-09`（上長評価）を入力し、人事の承認を経てプロセスを完了（クローズ）できる。
 
 **360度評価の回答者ルール:**
 
@@ -717,7 +739,7 @@ CREATE TABLE organization_snapshots (
 
 #### `organization_memberships`
 
-> **v1.1 更新**: `employee_type` カラムを追加した。
+> **v1.5 更新**: 1次評価者・2次評価者のカラムを明確化。
 
 ```sql
 CREATE TABLE organization_memberships (
@@ -732,10 +754,9 @@ CREATE TABLE organization_memberships (
   employee_type            VARCHAR(20) NOT NULL DEFAULT 'REGULAR',
     -- REGULAR（正社員）/ CONTRACT（契約社員）/ ASSISTANT（アシスタント）
   roles                    TEXT[]      NOT NULL DEFAULT '{MEMBER}',
-  manager_id               UUID        REFERENCES employees(id),  -- 直属上長
-  join_date                DATE,        -- 入社日（中途入社者の初回評価判定に使用）
-  is_evaluation_exempt     BOOLEAN     NOT NULL DEFAULT FALSE,
-    -- 休職等で評価対象外の場合TRUE
+  manager_id               UUID        REFERENCES employees(id),  -- 直属上長（1次評価者）
+  division_manager_id      UUID        REFERENCES employees(id),  -- 事業部長（2次評価者）
+  join_date                DATE,        -- 入社日
   valid_from               DATE        NOT NULL,
   valid_to                 DATE,        -- NULLは現在有効
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -774,6 +795,8 @@ CREATE TABLE period_phases (
 
 #### `goal_sets`
 
+> **v1.5 更新**: ステータスの多段化、対象月数、評価対象外フラグ、期中クローズフラグを追加。
+
 ```sql
 CREATE TABLE goal_sets (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -782,12 +805,18 @@ CREATE TABLE goal_sets (
   membership_id         UUID        NOT NULL REFERENCES organization_memberships(id),
                         -- 目標設定時点の所属スナップショット
   status                VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
-    -- 等級3以上: DRAFT / PENDING_APPROVAL / APPROVED / REJECTED / MEETING_REJECTED
+    -- 等級3以上: DRAFT / PENDING_MANAGER / PENDING_DIVISION / PENDING_EXECUTIVE / APPROVED / REJECTED / MEETING_REJECTED
     -- 等級1〜2:  DRAFT / SAVED（承認フローなし）
     -- MEETING_REJECTED: 目標設定会議で部長が差し戻した状態。社員は修正後に再申請可能
   is_mbo_target         BOOLEAN     NOT NULL DEFAULT FALSE,
     -- TRUE: 承認フロー・評価の対象（employee_type=REGULAR かつ grade>=3）
     -- FALSE: 目標入力は可能だが承認フロー・評価の対象外（等級1〜2・契約社員・アシスタント）
+  is_evaluation_exempt  BOOLEAN     NOT NULL DEFAULT FALSE,
+    -- 実勤務6か月未満の場合TRUE
+  target_months         SMALLINT    NOT NULL DEFAULT 12,
+    -- 評価対象月数（1〜12）。按分計算に使用
+  is_midterm_closed     BOOLEAN     NOT NULL DEFAULT FALSE,
+    -- 休職・退職等により期中に評価プロセスを完了させた場合TRUE
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (employee_id, evaluation_period_id)
@@ -938,21 +967,20 @@ CREATE TABLE degree360_scores (
 
 #### `approval_requests`
 
+> **v1.5 更新**: 承認プロセスの多段化に伴いステータスを細分化。
+
 ```sql
 CREATE TABLE approval_requests (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   request_type   VARCHAR(30) NOT NULL,
-    -- GOAL_APPROVAL:     目標設定の承認申請
-    -- GOAL_REVISION:     目標修正申請（中間振り返り時など）
-    -- REVISION_REQUEST:  上長からの修正依頼（v1.4追加。社員への指示起点）
-    -- MEETING_REJECTION: 目標設定会議での差し戻し（v1.3追加）
+    -- GOAL_APPROVAL / GOAL_REVISION / REVISION_REQUEST / MEETING_REJECTION
   goal_set_id    UUID        NOT NULL REFERENCES goal_sets(id),
   requester_id   UUID        NOT NULL REFERENCES employees(id),
   approver_id    UUID        NOT NULL REFERENCES employees(id),
-  status         VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    -- GOAL_APPROVAL用:    PENDING / APPROVED / REJECTED
-    -- GOAL_REVISION用:    REVISION_PENDING / REVISION_APPROVED / REVISION_REJECTED  ← v1.4追加
-    -- MEETING_REJECTION用: 記録のみ（ステータス管理不要）
+  status         VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    -- 目標設定用: PENDING_MANAGER / PENDING_DIVISION / PENDING_EXECUTIVE
+    -- 目標修正用: REVISION_PENDING_MANAGER / REVISION_PENDING_DIVISION / REVISION_PENDING_EXECUTIVE
+    -- 最終結果: APPROVED / REJECTED / REVISION_APPROVED / REVISION_REJECTED
   rejection_note TEXT,
     -- 差し戻し・修正依頼時のコメント。REJECTED / REVISION_REJECTED / MEETING_REJECTION 時は必須
   requested_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1000,6 +1028,7 @@ PATCH  /api/admin/periods/:periodId/phases      # フェーズ更新
 GET    /api/admin/users                         # ユーザー一覧
 POST   /api/admin/users                         # ユーザー作成
 PATCH  /api/admin/users/:userId                 # ユーザー更新
+POST   /api/admin/smarthr/import                # SmartHR CSVによる人事属性一括更新（v1.5追加）
 GET    /api/admin/organizations                 # 組織一覧
 POST   /api/admin/organizations                 # 組織スナップショット作成
 ```
@@ -1133,20 +1162,19 @@ RDS PostgreSQL（プライベートサブネット内）
 DRAFT
   │ 社員が承認申請
   ↓
-PENDING_APPROVAL
-  │ 上長が承認              │ 上長が差し戻し
-  ↓                        ↓
-APPROVED                REJECTED
-  │ 部長が会議差し戻し         │ 社員が修正後に再申請
-  ↓（v1.3追加）               ↓
-MEETING_REJECTED        PENDING_APPROVAL（再）
-  │ 社員が修正後に再申請
-  ↓
-PENDING_APPROVAL（再）
-  │ 上長が承認
-  ↓
-APPROVED（確定）
+PENDING_MANAGER（直属上長承認待ち）
+  │ 上長が承認             │ 上長が差し戻し
+  ↓                       ↓
+PENDING_DIVISION（事業部長承認待ち）  REJECTED
+  │ 事業部長が承認          │ 差し戻し後修正
+  ↓                       ↓
+PENDING_EXECUTIVE（経営承認待ち）    DRAFT / REJECTED
+  │ 経営が承認             │ 経営/部長が差し戻し
+  ↓                       ↓
+APPROVED（確定）           REJECTED / MEETING_REJECTED
 ```
+
+> **注記**: 各承認段階（MANAGER / DIVISION / EXECUTIVE）において、承認者は内容を確認し、不備があれば `REJECTED` として差し戻すことができる。
 
 **等級1〜2（`is_mbo_target = FALSE`）:** ← v1.2追加
 
