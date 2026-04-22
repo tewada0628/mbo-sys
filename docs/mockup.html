@@ -338,6 +338,69 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 11px; font-weight: 700;
     }
+
+    /* ===== 承認ステッパー（4段階フロー表示） ===== */
+    .approval-stepper {
+      display: flex; align-items: flex-start; gap: 0;
+      padding: 14px 16px; background: var(--gray-bg);
+      border-radius: 4px; margin-bottom: 12px;
+    }
+    .step-item { display: flex; flex-direction: column; align-items: center; }
+    .step-circle {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid var(--border); background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--gray); z-index: 1;
+    }
+    .step-circle.done    { background: var(--success); border-color: var(--success); color: #fff; }
+    .step-circle.current { background: var(--warning); border-color: var(--warning); color: #fff; }
+    .step-label { font-size: 10px; color: var(--gray); margin-top: 4px; white-space: nowrap; text-align: center; line-height: 1.3; }
+    .step-label.done    { color: var(--success); font-weight: 700; }
+    .step-label.current { color: var(--warning); font-weight: 700; }
+    .step-line { height: 2px; flex: 1; background: var(--border); margin: 13px 2px 0; min-width: 30px; }
+    .step-line.done { background: var(--success); }
+
+    /* ===== イレギュラーステータスバッジ ===== */
+    .badge-leave    { background: #fde8e8; color: #9b1c1c; }
+    .badge-return   { background: #e8f5e9; color: #1b5e20; }
+    .badge-midentry { background: #e8f4fd; color: #0c4a6e; }
+    .badge-exempt   { background: #f4f4f4; color: #555; border: 1px solid #ccc; }
+
+    /* ===== 画面7・8 専用クラス ===== */
+    .stat-value-gray    { color: var(--gray); }
+    .stat-value-success { color: var(--success); }
+    .filter-bar-compact { border: none; padding: 0; margin: 0; background: transparent; }
+    .select-months      { width: 70px; }
+    .text-months        { font-size: 11px; }
+    .check-label        { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    .check-label-text   { font-size: 12px; }
+    .exempt-notice      { font-size: 12px; color: var(--danger); font-weight: 700; }
+    .btn-disabled-fade  { opacity: 0.4; }
+    .footer-note        { font-size: 11px; }
+    .file-input-hidden  { display: none; }
+    .upload-hint        { margin-top: 10px; font-size: 12px; color: var(--gray); }
+    .badge-blue         { background: #e6f4ff; color: #0c4a6e; }
+    .td-bold            { font-weight: 700; }
+    .alert-warning      { background: #fef9e7; border-color: var(--warning); margin-bottom: 12px; }
+
+    /* ===== ミニステッパー（承認管理画面用） ===== */
+    .mini-stepper { display:flex; align-items:flex-start; gap:0; padding:8px 12px; background:var(--gray-bg); border-radius:4px; margin-bottom:10px; }
+    .mini-step .step-circle { width:22px; height:22px; font-size:10px; }
+    .mini-step .step-label  { font-size:9px; }
+    .mini-step-line { height:2px; min-width:24px; background:var(--border); margin:10px 0 0; flex:none; }
+    .mini-step-line.done { background:var(--success); }
+    .mini-step-hint { flex:1; margin:10px 0 0 8px; font-size:11px; color:var(--warning); font-weight:700; }
+
+    /* ===== CSVアップロードゾーン ===== */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 6px;
+      padding: 40px 20px; text-align: center; cursor: pointer;
+      background: var(--gray-bg); transition: border-color 0.2s;
+    }
+    .upload-zone:hover { border-color: var(--primary); }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-text { font-size: 14px; font-weight: 700; color: var(--gray-dark); }
+    .upload-sub  { font-size: 12px; color: var(--gray); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -527,10 +590,33 @@
               </div>
             </div>
             <div class="flex-center gap-8">
-              <span class="badge badge-yellow">承認待ち</span>
+              <span class="badge badge-yellow">上長承認待ち</span>
               <span class="text-muted">2026年度（2025/10/01〜2026/09/30）</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 承認フロー 4段階ステッパー -->
+      <div class="approval-stepper">
+        <div class="step-item">
+          <div class="step-circle done">✓</div>
+          <div class="step-label done">本人<br>申請済</div>
+        </div>
+        <div class="step-line done"></div>
+        <div class="step-item">
+          <div class="step-circle current">2</div>
+          <div class="step-label current">上長<br>承認待ち</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-circle">3</div>
+          <div class="step-label">事業部長<br>承認待ち</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-circle">4</div>
+          <div class="step-label">経営<br>承認待ち</div>
         </div>
       </div>
 
@@ -994,6 +1080,17 @@
               <span class="text-muted">2025/10/15 申請</span>
             </div>
           </div>
+          <!-- 承認ステップ進捗（ミニ） -->
+          <div class="mini-stepper">
+            <div class="step-item mini-step"><div class="step-circle done">✓</div><div class="step-label done">本人</div></div>
+            <div class="mini-step-line done"></div>
+            <div class="step-item mini-step"><div class="step-circle current">2</div><div class="step-label current">上長</div></div>
+            <div class="mini-step-line"></div>
+            <div class="step-item mini-step"><div class="step-circle">3</div><div class="step-label">事業部長</div></div>
+            <div class="mini-step-line"></div>
+            <div class="step-item mini-step"><div class="step-circle">4</div><div class="step-label">経営</div></div>
+            <div class="mini-step-hint">← あなた（上長）が承認すると事業部長へ送付されます</div>
+          </div>
           <div style="background:var(--gray-bg);padding:10px;border-radius:4px;margin-bottom:12px;font-size:12px;color:var(--gray-dark);">
             ① 新規顧客獲得15社（50%）　② 既存顧客売上110%（30%）　③ 新人育成（20%）
           </div>
@@ -1001,7 +1098,7 @@
             <button class="btn btn-ghost btn-sm" onclick="go(2)">目標詳細を確認 →</button>
             <div class="flex-center gap-8">
               <button class="btn btn-danger btn-sm">差し戻し</button>
-              <button class="btn btn-success btn-sm">承認する</button>
+              <button class="btn btn-success btn-sm">承認して事業部長へ送付</button>
             </div>
           </div>
         </div>
@@ -1021,6 +1118,17 @@
               <span class="text-muted">2026/02/10 申請</span>
             </div>
           </div>
+          <!-- 承認ステップ進捗（ミニ）: 修正申請も4段階フロー -->
+          <div class="mini-stepper">
+            <div class="step-item mini-step"><div class="step-circle done">✓</div><div class="step-label done">本人</div></div>
+            <div class="mini-step-line done"></div>
+            <div class="step-item mini-step"><div class="step-circle current">2</div><div class="step-label current">上長</div></div>
+            <div class="mini-step-line"></div>
+            <div class="step-item mini-step"><div class="step-circle">3</div><div class="step-label">事業部長</div></div>
+            <div class="mini-step-line"></div>
+            <div class="step-item mini-step"><div class="step-circle">4</div><div class="step-label">経営</div></div>
+            <div class="mini-step-hint">← あなた（上長）が承認すると事業部長へ送付されます</div>
+          </div>
           <div style="background:#fef9e7;padding:10px;border-radius:4px;border-left:3px solid var(--warning);margin-bottom:12px;font-size:12px;">
             <div style="font-weight:700;margin-bottom:4px;">修正理由：KPI方針変更（KPI_CHANGE）</div>
             目標②「既存顧客売上」の達成基準修正。前年比110% → 105%。マーケット環境の変化により上位KPIが修正されたため。
@@ -1032,7 +1140,7 @@
             </div>
             <div class="flex-center gap-8">
               <button class="btn btn-danger btn-sm">差し戻し</button>
-              <button class="btn btn-success btn-sm">承認する</button>
+              <button class="btn btn-success btn-sm">承認して事業部長へ送付</button>
             </div>
           </div>
         </div>
@@ -1052,6 +1160,17 @@
               <span class="text-muted">2025/10/20 申請</span>
             </div>
           </div>
+          <!-- 承認ステップ進捗（ミニ） -->
+          <div class="mini-stepper">
+            <div class="step-item mini-step"><div class="step-circle done">✓</div><div class="step-label done">本人</div></div>
+            <div class="mini-step-line done"></div>
+            <div class="step-item mini-step"><div class="step-circle current">2</div><div class="step-label current">上長</div></div>
+            <div class="mini-step-line"></div>
+            <div class="step-item mini-step"><div class="step-circle">3</div><div class="step-label">事業部長</div></div>
+            <div class="mini-step-line"></div>
+            <div class="step-item mini-step"><div class="step-circle">4</div><div class="step-label">経営</div></div>
+            <div class="mini-step-hint">← あなた（上長）が承認すると事業部長へ送付されます</div>
+          </div>
           <div style="background:var(--gray-bg);padding:10px;border-radius:4px;margin-bottom:12px;font-size:12px;color:var(--gray-dark);">
             ① 新規顧客開拓8社（50%）　② 提案資料品質向上（30%）　③ 採用面接参加6回（20%）
           </div>
@@ -1059,7 +1178,7 @@
             <button class="btn btn-ghost btn-sm">目標詳細を確認 →</button>
             <div class="flex-center gap-8">
               <button class="btn btn-danger btn-sm">差し戻し</button>
-              <button class="btn btn-success btn-sm">承認する</button>
+              <button class="btn btn-success btn-sm">承認して事業部長へ送付</button>
             </div>
           </div>
         </div>
@@ -1082,6 +1201,8 @@
       <div class="sidebar-section">管理</div>
       <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
       <div class="sidebar-nav-item active"><span class="icon">≡</span>評価調整・確定</div>
+      <div class="sidebar-nav-item" onclick="go(7)"><span class="icon">⚑</span>イレギュラー社員対応</div>
+      <div class="sidebar-nav-item" onclick="go(8)"><span class="icon">↑</span>SmartHR CSV連携</div>
     </div>
     <div class="sidebar-user">
       <div class="avatar-sm" style="width:30px;height:30px;border-radius:50%;background:#6941c6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">人</div>
@@ -1197,6 +1318,287 @@
   </div>
 </div>
 
+<!-- =====================================================
+     画面7: イレギュラー社員対応（HR）
+     ===================================================== -->
+<div id="screen-7" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+      <div class="sidebar-nav-item active"><span class="icon">⚑</span>イレギュラー社員対応</div>
+      <div class="sidebar-nav-item" onclick="go(8)"><span class="icon">↑</span>SmartHR CSV連携</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar-sm" style="width:30px;height:30px;border-radius:50%;background:#6941c6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">人</div>
+      <div><div class="name">人事 担当者</div><div class="role">HRパートナー（等級4）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">イレギュラー社員対応（F-20）</div>
+      <div class="topbar-right"><span class="phase-label">2026年度</span></div>
+    </div>
+    <div class="content">
+      <div class="alert alert-info">
+        <span>i</span>
+        <div>休職・復職・中途入社・退職予定の社員に対して、期中目標設定・期中クローズ・評価対象外フラグ・対象月数を管理します。</div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:14px;">
+        <div class="stat-card"><div class="stat-label">期中対応対象者</div><div class="stat-value">4名</div></div>
+        <div class="stat-card"><div class="stat-label">評価対象外（exempt）</div><div class="stat-value stat-value-gray">2名</div></div>
+        <div class="stat-card"><div class="stat-label">期中クローズ済み</div><div class="stat-value stat-value-success">1名</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">対象社員一覧</div>
+          <div class="filter-bar filter-bar-compact">
+            <select><option>すべてのケース</option><option>休職</option><option>復職</option><option>中途入社</option><option>退職予定</option></select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>社員名</th>
+              <th>等級</th>
+              <th>ケース</th>
+              <th>対象月数</th>
+              <th>評価対象外</th>
+              <th>ステータス</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 休職 -->
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-teal">木</div>木村 五郎</div></td>
+              <td><span class="badge badge-teal">等級4</span></td>
+              <td><span class="badge badge-leave">休職中</span></td>
+              <td>
+                <select class="select-months">
+                  <option>7</option><option selected>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+                </select>
+                <span class="text-muted text-months"> か月 / 12</span>
+              </td>
+              <td>
+                <label class="check-label">
+                  <input type="checkbox"> <span class="text-muted check-label-text">対象外にする</span>
+                </label>
+              </td>
+              <td><span class="badge badge-yellow">自己評価入力中</span></td>
+              <td>
+                <div class="flex-center gap-6">
+                  <button class="btn btn-warning btn-sm">期中クローズ実行</button>
+                </div>
+              </td>
+            </tr>
+            <!-- 復職 -->
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-green">松</div>松本 六花</div></td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td><span class="badge badge-return">復職</span></td>
+              <td>
+                <select class="select-months">
+                  <option>4</option><option selected>5</option><option>6</option><option>7</option>
+                </select>
+                <span class="text-muted text-months"> か月 / 12</span>
+              </td>
+              <td>
+                <label class="check-label">
+                  <input type="checkbox" checked> <span class="exempt-notice">評価対象外（勤務5か月）</span>
+                </label>
+              </td>
+              <td><span class="badge badge-exempt">評価対象外</span></td>
+              <td>
+                <div class="flex-center gap-6">
+                  <button class="btn btn-primary btn-sm">期中目標設定を開始</button>
+                </div>
+              </td>
+            </tr>
+            <!-- 中途入社 -->
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-orange">橋</div>橋本 七海</div></td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td><span class="badge badge-midentry">中途入社</span></td>
+              <td>
+                <select class="select-months">
+                  <option>5</option><option selected>6</option><option>7</option>
+                </select>
+                <span class="text-muted text-months"> か月 / 12</span>
+              </td>
+              <td>
+                <label class="check-label">
+                  <input type="checkbox"> <span class="text-muted check-label-text">対象外にする</span>
+                </label>
+              </td>
+              <td><span class="badge badge-yellow">目標設定承認待ち</span></td>
+              <td>
+                <div class="flex-center gap-6">
+                  <button class="btn btn-ghost btn-sm">目標詳細を確認 →</button>
+                </div>
+              </td>
+            </tr>
+            <!-- 退職予定 -->
+            <tr>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-purple">石</div>石田 八郎</div></td>
+              <td><span class="badge badge-teal">等級5</span></td>
+              <td><span class="badge badge-leave">退職予定</span></td>
+              <td>
+                <select class="select-months">
+                  <option selected>3</option><option>4</option><option>5</option>
+                </select>
+                <span class="text-muted text-months"> か月 / 12</span>
+              </td>
+              <td>
+                <label class="check-label">
+                  <input type="checkbox" checked> <span class="exempt-notice">評価対象外（勤務3か月）</span>
+                </label>
+              </td>
+              <td><span class="badge badge-green">期中クローズ済み</span></td>
+              <td>
+                <div class="flex-center gap-6">
+                  <button class="btn btn-ghost btn-sm btn-disabled-fade" type="button" disabled>完了</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card-footer">
+          <span class="text-muted footer-note">対象月数は昇給按分に使用されます。評価対象外（exempt）フラグが立った社員は最終評価スコアの算出から除外されます。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     画面8: SmartHR CSV連携（HR）
+     ===================================================== -->
+<div id="screen-8" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item" onclick="go(2)"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-section">管理</div>
+      <div class="sidebar-nav-item" onclick="go(5)"><span class="icon">✓</span>承認・申請管理</div>
+      <div class="sidebar-nav-item" onclick="go(6)"><span class="icon">≡</span>評価調整・確定</div>
+      <div class="sidebar-nav-item" onclick="go(7)"><span class="icon">⚑</span>イレギュラー社員対応</div>
+      <div class="sidebar-nav-item active"><span class="icon">↑</span>SmartHR CSV連携</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar-sm" style="width:30px;height:30px;border-radius:50%;background:#6941c6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">人</div>
+      <div><div class="name">人事 担当者</div><div class="role">HRパートナー（等級4）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">SmartHR CSV連携（F-21）</div>
+      <div class="topbar-right"><span class="phase-label">人事属性一括更新</span></div>
+    </div>
+    <div class="content">
+      <div class="alert alert-info">
+        <span>i</span>
+        <div>SmartHRからエクスポートしたCSVをアップロードすることで、等級・雇用形態・1次評価者・2次評価者を一括更新できます。更新前に差分プレビューで内容を確認してください。</div>
+      </div>
+
+      <!-- ステップ1: アップロード -->
+      <div class="card mb-12">
+        <div class="card-header"><div class="card-title">ステップ 1　CSVファイルのアップロード</div></div>
+        <div class="card-body">
+          <div class="upload-zone" onclick="this.querySelector('input').click()">
+            <input type="file" accept=".csv" class="file-input-hidden">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">クリックしてCSVを選択、またはドラッグ＆ドロップ</div>
+            <div class="upload-sub">SmartHRの「社員情報エクスポート」から出力したCSVファイル（.csv）</div>
+          </div>
+          <div class="upload-hint">
+            対応カラム：<code>employee_code</code>（必須）、<code>grade</code>、<code>employee_type</code>、<code>primary_evaluator_code</code>、<code>secondary_evaluator_code</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- ステップ2: 差分プレビュー（ファイル選択後に表示） -->
+      <div class="card mb-12">
+        <div class="card-header">
+          <div class="card-title">ステップ 2　差分プレビュー（3件の変更を検出）</div>
+          <span class="badge badge-yellow">要確認</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>社員コード</th>
+              <th>社員名</th>
+              <th>変更項目</th>
+              <th>変更前</th>
+              <th>変更後</th>
+              <th>適用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-muted">EMP-0042</td>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-teal">田</div>田中 一郎</div></td>
+              <td>等級</td>
+              <td><span class="badge badge-teal">等級3</span></td>
+              <td><span class="badge badge-blue">等級4</span></td>
+              <td><input type="checkbox" checked></td>
+            </tr>
+            <tr>
+              <td class="text-muted">EMP-0058</td>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-green">山</div>山田 花子</div></td>
+              <td>1次評価者</td>
+              <td class="text-muted">鈴木 部長</td>
+              <td class="td-bold">佐々木 部長</td>
+              <td><input type="checkbox" checked></td>
+            </tr>
+            <tr>
+              <td class="text-muted">EMP-0071</td>
+              <td><div class="flex-center gap-8"><div class="avatar-sm av-purple">松</div>松本 六花</div></td>
+              <td>雇用形態</td>
+              <td class="text-muted">CONTRACT（契約社員）</td>
+              <td class="td-bold">REGULAR（正社員）</td>
+              <td><input type="checkbox" checked></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card-footer">
+          <span class="text-muted footer-note">CSVに含まれる全社員：47名　変更なし：44名　変更あり：3名　エラー：0件</span>
+        </div>
+      </div>
+
+      <!-- ステップ3: 実行 -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">ステップ 3　インポート実行</div></div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <span>⚠</span>
+            <div>インポートを実行すると選択した3件の人事属性が即座に更新されます。操作は監査ログに記録されます。</div>
+          </div>
+          <div class="flex-between">
+            <button type="button" class="btn btn-ghost">キャンセル</button>
+            <div class="flex-center gap-8">
+              <button type="button" class="btn btn-ghost btn-sm">CSVテンプレートをダウンロード</button>
+              <button type="button" class="btn btn-primary">選択した 3 件を更新する</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ===== スイッチャー ===== -->
 <div id="switcher">
   <div class="sw-title">画面切り替え</div>
@@ -1206,6 +1608,8 @@
   <button onclick="go(4)">4. 中間振り返り（社員）</button>
   <button onclick="go(5)">5. 承認・申請管理（部長）</button>
   <button onclick="go(6)">6. 評価調整・確定（HR）</button>
+  <button onclick="go(7)">7. イレギュラー社員対応（HR）</button>
+  <button onclick="go(8)">8. SmartHR CSV連携（HR）</button>
 </div>
 
 <script>
