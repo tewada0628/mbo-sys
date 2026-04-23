@@ -1,0 +1,13 @@
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# Node.js
+node_modules/
+.next/
+.env
+.env.local
+.env*.local
+
+# OS
+.DS_Store
+Thumbs.db
