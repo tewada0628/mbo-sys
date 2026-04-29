@@ -389,6 +389,16 @@
     .mini-step-line.done { background:var(--primary); }
     .mini-step-hint { flex:1; margin:10px 0 0 8px; font-size:11px; color:var(--primary); font-weight:700; }
 
+    /* ===== テーブル内承認ステップドット ===== */
+    .step-dots { display:flex; align-items:center; gap:2px; margin-top:5px; }
+    .step-dot { width:8px; height:8px; border-radius:50%; background:var(--border); flex-shrink:0; }
+    .step-dot.done { background:var(--primary); }
+    .step-dot.current { background:var(--primary); box-shadow:0 0 0 2px rgba(1,174,187,0.28); }
+    .step-dot.rejected { background:#ef4444; box-shadow:0 0 0 2px rgba(239,68,68,0.25); }
+    .step-dot.warn { background:#f97316; box-shadow:0 0 0 2px rgba(249,115,22,0.25); }
+    .step-dot-line { height:1px; width:10px; background:var(--border); flex-shrink:0; }
+    .step-dot-line.done { background:var(--primary); }
+
     /* ===== CSVアップロードゾーン ===== */
     .upload-zone {
       border: 2px dashed var(--border); border-radius: 6px;
@@ -737,13 +747,14 @@
               <th>社員名</th>
               <th>等級</th>
               <th>目標サマリ</th>
-              <th>ステータス</th>
+              <th>承認ステップ</th>
               <th>自己評価</th>
               <th>上長評価</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
+            <!-- 田中一郎: PENDING_MANAGER（上長承認待ち）→ 承認ボタン表示 -->
             <tr>
               <td>
                 <div class="flex-center gap-8">
@@ -760,7 +771,20 @@
                 <div class="text-sm">② 既存顧客売上110%</div>
                 <div class="text-sm">③ 新人メンバー育成</div>
               </td>
-              <td><span class="badge badge-yellow">承認待ち</span></td>
+              <td>
+                <span class="badge badge-yellow">上長承認待ち</span>
+                <div class="step-dots" title="本人入力済 → 上長承認待ち → 事業部長 → 経営 → 確定">
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot current"></div>
+                  <div class="step-dot-line"></div>
+                  <div class="step-dot"></div>
+                  <div class="step-dot-line"></div>
+                  <div class="step-dot"></div>
+                  <div class="step-dot-line"></div>
+                  <div class="step-dot"></div>
+                </div>
+              </td>
               <td><span class="badge badge-gray">未提出</span></td>
               <td><span class="badge badge-gray">未提出</span></td>
               <td>
@@ -770,6 +794,7 @@
                 </div>
               </td>
             </tr>
+            <!-- 山田花子: APPROVED（承認済み）→ 最終承認後差し戻しボタン表示 -->
             <tr>
               <td>
                 <div class="flex-center gap-8">
@@ -786,16 +811,30 @@
                 <div class="text-sm">② パートナー企業開拓3社</div>
                 <div class="text-sm">③ 部署横断PJ推進</div>
               </td>
-              <td><span class="badge badge-green">承認済み</span></td>
+              <td>
+                <span class="badge badge-green">承認済み</span>
+                <div class="step-dots" title="本人入力済 → 上長承認済 → 事業部長承認済 → 経営承認済 → 確定">
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done current"></div>
+                </div>
+              </td>
               <td><span class="badge badge-gray">未提出</span></td>
               <td><span class="badge badge-gray">未提出</span></td>
               <td>
                 <div class="flex-center gap-6" style="flex-direction:column;align-items:flex-start;">
                   <button class="btn btn-ghost btn-sm">詳細</button>
-                  <button class="btn btn-warning btn-sm">会議差し戻し</button>
+                  <button class="btn btn-warning btn-sm">最終承認後差し戻し</button>
                 </div>
               </td>
             </tr>
+            <!-- 佐藤次郎: MEETING_REJECTED（最終承認後差し戻し）→ 社員が修正待ち -->
             <tr>
               <td>
                 <div class="flex-center gap-8">
@@ -812,11 +851,25 @@
                 <div class="text-sm">② 提案数月8件以上</div>
                 <div class="text-sm">③ 勉強会開催4回</div>
               </td>
-              <td><span class="badge badge-red">会議差し戻し</span></td>
+              <td>
+                <span class="badge badge-orange">最終承認後差し戻し</span>
+                <div class="step-dots" title="承認済みの後、難易度調整のため差し戻し済み">
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot done"></div>
+                  <div class="step-dot-line done"></div>
+                  <div class="step-dot warn"></div>
+                </div>
+              </td>
               <td><span class="badge badge-gray">未提出</span></td>
               <td><span class="badge badge-gray">未提出</span></td>
               <td><button class="btn btn-ghost btn-sm">詳細</button></td>
             </tr>
+            <!-- 木村三郎: 等級2 SAVED（承認フロー対象外）-->
             <tr style="opacity:0.45;">
               <td>
                 <div class="flex-center gap-8">
@@ -1042,7 +1095,7 @@
         <div class="tab active">承認待ち <span class="badge badge-red" style="margin-left:4px;">3</span></div>
         <div class="tab">承認済み</div>
         <div class="tab">差し戻し済み</div>
-        <div class="tab">会議差し戻し済み</div>
+        <div class="tab">最終承認後差し戻し済み</div>
         <div class="tab">修正依頼済み <span class="badge badge-orange" style="margin-left:4px;">1</span></div>
       </div>
 
@@ -1819,6 +1872,318 @@
   </div>
 </div>
 
+<!-- =====================================================
+     画面10: 目標設定フォーム（社員・新規入力）
+     ===================================================== -->
+<div id="screen-10" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="logo-mark">NEWONE</div><div class="logo-sub">MBO管理システム</div></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-item" onclick="go(1)"><span class="icon">□</span>ダッシュボード</div>
+      <div class="sidebar-nav-item active"><span class="icon">◎</span>自分の目標</div>
+      <div class="sidebar-nav-item" onclick="go(3)"><span class="icon">▤</span>目標一覧（自部署）</div>
+      <div class="sidebar-nav-item" onclick="go(4)"><span class="icon">✎</span>中間振り返り</div>
+      <div class="sidebar-nav-item" onclick="go(9)"><span class="icon">◷</span>過去の評価</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar-sm av-teal" style="width:30px;height:30px;border-radius:50%;font-size:12px;">田</div>
+      <div><div class="name">田中 一郎</div><div class="role">コンサルタント（等級3）</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">目標設定</div>
+      <div class="topbar-right">
+        <span class="phase-label">目標設定フェーズ</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="breadcrumb">ダッシュボード ＞ <span>2026年度 目標設定</span></div>
+
+      <!-- 社員情報カード -->
+      <div class="card mb-12">
+        <div class="card-body">
+          <div class="flex-between">
+            <div class="flex-center gap-12">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">田</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;">田中 一郎</div>
+                <div class="text-muted">コンサルタント（等級3）　営業ユニット</div>
+              </div>
+            </div>
+            <div class="flex-center gap-8">
+              <span class="badge badge-gray">下書き</span>
+              <span class="text-muted">2026年度（2025/10/01〜2026/09/30）</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 承認フロー 4段階ステッパー（DRAFT = 本人入力が現在位置） -->
+      <div class="approval-stepper">
+        <div class="step-item">
+          <div class="step-circle current">1</div>
+          <div class="step-label current">本人<br>入力中</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-circle">2</div>
+          <div class="step-label">上長<br>承認</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-circle">3</div>
+          <div class="step-label">事業部長<br>承認</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-circle">4</div>
+          <div class="step-label">経営<br>承認</div>
+        </div>
+      </div>
+
+      <!-- 入力ガイダンスバナー（F-17） -->
+      <div class="alert alert-info" style="margin-bottom:16px;">
+        <span>💡</span>
+        <div>
+          <div style="font-weight:700;margin-bottom:4px;">目標設定のポイント</div>
+          <div style="font-size:12px;line-height:1.7;">
+            <strong>連動パターン</strong>：「分解」はチームKPIを個人目標に分解、「先行指標」は最終KPIへ繋がる先行指標を設定、「役割設定」はチーム目標に対する自分の役割を定義します。<br>
+            <strong>達成基準</strong>：1.0（達成）はギリギリ達成できるストレッチな水準、1.2（挑戦）はその1.2倍以上で組織への影響が出るレベル、0.8（最低）は着実な努力で達成可能な水準を記述してください。
+          </div>
+        </div>
+      </div>
+
+      <!-- ウェイト合計インジケーター -->
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;">
+        <span class="text-muted" style="font-size:12px;">ウェイト合計</span>
+        <span style="font-size:16px;font-weight:700;color:var(--primary);">100%</span>
+        <span class="badge badge-green" style="font-size:11px;">✓ 合計100%</span>
+      </div>
+
+      <!-- ===== 目標① KPI連動 ===== -->
+      <div class="goal-card" style="margin-bottom:20px;">
+        <div class="goal-card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-kpi1">KPI連動①</span>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="weight-text">ウェイト</span>
+            <input type="number" value="50" min="0" max="100" style="width:60px;text-align:right;font-weight:700;">
+            <span class="weight-text">%</span>
+          </div>
+        </div>
+        <div class="goal-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+          <!-- 連動パターン選択 -->
+          <div class="form-row">
+            <label>連動パターン <span style="color:#ef4444;">*</span></label>
+            <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern1" value="decomp" checked>
+                <span class="check-label-text"><strong>分解</strong>　チームKPIを個人目標へ分解</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern1" value="leading">
+                <span class="check-label-text"><strong>先行指標</strong>　最終KPIへ繋がる先行指標</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern1" value="role">
+                <span class="check-label-text"><strong>役割設定</strong>　チーム目標への自分の役割</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 目標タイトル -->
+          <div class="form-row">
+            <label>目標タイトル <span style="color:#ef4444;">*</span> <span class="form-hint" style="display:inline;margin-left:4px;">（最大100文字）</span></label>
+            <input type="text" placeholder="例：新規顧客獲得：年間15社" value="新規顧客獲得：年間15社">
+          </div>
+
+          <!-- 目標詳細・行動計画 -->
+          <div class="form-row">
+            <label>目標詳細・行動計画 <span style="color:#ef4444;">*</span></label>
+            <textarea rows="3" placeholder="目標の背景、具体的な行動計画を記入してください（最大2000文字）">営業チームの年間新規顧客目標30社のうち、個人担当として15社の新規獲得を目指す。毎月の商談件数・提案数を管理し四半期ごとに進捗を確認する。</textarea>
+          </div>
+
+          <!-- 達成基準 -->
+          <div class="form-row">
+            <label>達成基準 <span style="color:#ef4444;">*</span></label>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-12" style="flex-shrink:0;margin-top:2px;">1.2 挑戦</span>
+                <textarea rows="2" placeholder="1.0の1.2倍以上で組織の発展に影響するレベルを記述">18社以上獲得し、平均受注単価が目標を10%以上超える</textarea>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-10" style="flex-shrink:0;margin-top:2px;">1.0 達成</span>
+                <textarea rows="2" placeholder="ギリギリ達成できるストレッチな水準を記述">15社の新規顧客を獲得する（チーム目標の50%を一人で達成）</textarea>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-08" style="flex-shrink:0;margin-top:2px;">0.8 最低</span>
+                <textarea rows="2" placeholder="着実な努力で達成可能なレベルを記述">12社以上を獲得する</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 目標② KPI連動 ===== -->
+      <div class="goal-card" style="margin-bottom:20px;">
+        <div class="goal-card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-kpi2">KPI連動②</span>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="weight-text">ウェイト</span>
+            <input type="number" value="30" min="0" max="100" style="width:60px;text-align:right;font-weight:700;">
+            <span class="weight-text">%</span>
+          </div>
+        </div>
+        <div class="goal-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+          <div class="form-row">
+            <label>連動パターン <span style="color:#ef4444;">*</span></label>
+            <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern2" value="decomp">
+                <span class="check-label-text"><strong>分解</strong>　チームKPIを個人目標へ分解</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern2" value="leading" checked>
+                <span class="check-label-text"><strong>先行指標</strong>　最終KPIへ繋がる先行指標</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern2" value="role">
+                <span class="check-label-text"><strong>役割設定</strong>　チーム目標への自分の役割</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>目標タイトル <span style="color:#ef4444;">*</span></label>
+            <input type="text" placeholder="例：既存顧客売上：前年比110%" value="既存顧客売上：前年比110%">
+          </div>
+
+          <div class="form-row">
+            <label>目標詳細・行動計画 <span style="color:#ef4444;">*</span></label>
+            <textarea rows="3" placeholder="目標の背景、具体的な行動計画を記入してください（最大2000文字）">担当既存顧客10社に対し追加提案・アップセルを推進。6月末までに全顧客へサービス拡張の提案を実施することを先行指標として設定。</textarea>
+          </div>
+
+          <div class="form-row">
+            <label>達成基準 <span style="color:#ef4444;">*</span></label>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-12" style="flex-shrink:0;margin-top:2px;">1.2 挑戦</span>
+                <textarea rows="2" placeholder="1.0の1.2倍以上で組織の発展に影響するレベルを記述">前年比120%以上かつ新規サービス契約3件以上</textarea>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-10" style="flex-shrink:0;margin-top:2px;">1.0 達成</span>
+                <textarea rows="2" placeholder="ギリギリ達成できるストレッチな水準を記述">前年比110%（担当顧客全体で+1,100万円）</textarea>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-08" style="flex-shrink:0;margin-top:2px;">0.8 最低</span>
+                <textarea rows="2" placeholder="着実な努力で達成可能なレベルを記述">前年比105%以上</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 目標③ 組織貢献 ===== -->
+      <div class="goal-card" style="margin-bottom:20px;">
+        <div class="goal-card-header">
+          <div class="flex-center gap-8">
+            <span class="goal-type-label type-org">組織貢献</span>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="weight-text">ウェイト</span>
+            <input type="number" value="20" min="0" max="100" style="width:60px;text-align:right;font-weight:700;">
+            <span class="weight-text">%</span>
+          </div>
+        </div>
+        <div class="goal-card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+          <div class="form-row">
+            <label>連動パターン <span style="color:#ef4444;">*</span></label>
+            <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern3" value="upper">
+                <span class="check-label-text"><strong>上位目標</strong>　部門KPIをそのまま担う</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="pattern3" value="team" checked>
+                <span class="check-label-text"><strong>チーム力向上</strong>　チームの育成・改善への貢献</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label>目標タイトル <span style="color:#ef4444;">*</span></label>
+            <input type="text" placeholder="例：新入社員OJT・3か月戦力化支援" value="新人メンバーの3か月戦力化支援">
+          </div>
+
+          <div class="form-row">
+            <label>目標詳細・行動計画 <span style="color:#ef4444;">*</span></label>
+            <textarea rows="3" placeholder="目標の背景、具体的な行動計画を記入してください（最大2000文字）">10月入社の新人2名にOJT担当として月2回以上の1on1を実施。3か月以内に独立した顧客対応ができるレベルへの育成を目指す。</textarea>
+          </div>
+
+          <div class="form-row">
+            <label>達成基準 <span style="color:#ef4444;">*</span></label>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-12" style="flex-shrink:0;margin-top:2px;">1.2 挑戦</span>
+                <textarea rows="2" placeholder="1.0の1.2倍以上で組織の発展に影響するレベルを記述">2名とも2か月以内に独立対応可能。育成ノウハウをドキュメント化し部署展開</textarea>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-10" style="flex-shrink:0;margin-top:2px;">1.0 達成</span>
+                <textarea rows="2" placeholder="ギリギリ達成できるストレッチな水準を記述">2名とも3か月以内に独立した顧客対応が可能になる</textarea>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span class="criteria-label c-08" style="flex-shrink:0;margin-top:2px;">0.8 最低</span>
+                <textarea rows="2" placeholder="着実な努力で達成可能なレベルを記述">2名とも上長補助のもとで顧客対応できるレベルに到達</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公開範囲 -->
+      <div class="card mb-12">
+        <div class="card-body">
+          <div class="form-row" style="margin-bottom:0;">
+            <label>公開範囲</label>
+            <div style="display:flex;gap:20px;margin-top:6px;">
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="visibility" value="dept" checked>
+                <span class="check-label-text">部署内に公開（推奨）</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="visibility" value="company">
+                <span class="check-label-text">全社に公開</span>
+              </label>
+              <label class="check-label" style="font-weight:400;">
+                <input type="radio" name="visibility" value="self">
+                <span class="check-label-text">自分のみ</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- フッターアクション -->
+      <div class="flex-between mt-16">
+        <button class="btn btn-ghost" onclick="go(1)">← 戻る</button>
+        <div class="flex-center gap-8">
+          <button class="btn btn-ghost">下書き保存</button>
+          <button class="btn btn-primary" onclick="go(2)">上長に承認申請する →</button>
+        </div>
+      </div>
+      <div class="text-muted" style="font-size:11px;text-align:right;margin-top:6px;">承認申請後は目標内容を自由に編集できなくなります。内容を確認してから申請してください。</div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ===== スイッチャー ===== -->
 <div id="switcher">
   <div class="sw-title">画面切り替え</div>
@@ -1831,6 +2196,7 @@
   <button onclick="go(7)">7. イレギュラー社員対応（HR）</button>
   <button onclick="go(8)">8. SmartHR CSV連携（HR）</button>
   <button onclick="go(9)">9. 過去の評価（社員）</button>
+  <button onclick="go(10)">10. 目標設定フォーム（社員）</button>
 </div>
 
 <script>
