@@ -347,7 +347,7 @@ src/
 - 各段階で差し戻しが可能。差し戻された場合は `REJECTED` ステータスとなり、社員が修正して再申請する。
 - **等級1〜2（`is_mbo_target = FALSE`）**: 承認フローなし。入力・保存後は即 `SAVED` ステータスになる。承認申請ボタンは表示しない。
 
-> **承認後の編集制限（v1.3追加・v1.5更新）**: `APPROVED` または `MEETING_REJECTED` 以外のステータス（承認プロセス進行中を含む）では、社員による目標内容の自由編集を禁止する。APIの `PATCH /api/goals/:goalSetId` は `DRAFT` および `REJECTED`（差し戻し後）のみ受け付け、それ以外のステータスでは `403 Forbidden` を返す。
+> **承認後の編集制限（v1.3追加・v1.5更新）**: `APPROVED`・承認申請中（`PENDING_*`）の状態では、社員による目標内容の自由編集を禁止する。APIの `PATCH /api/goals/:goalSetId` は `DRAFT` / `REJECTED`（差し戻し後）/ `MEETING_REJECTED`（最終承認後差し戻し）のみ受け付け、それ以外のステータスでは `403 Forbidden` を返す。
 
 #### F-06 目標修正申請
 
@@ -890,8 +890,10 @@ CREATE TABLE goal_sets (
     -- 実勤務6か月未満の場合TRUE
   target_months         SMALLINT    NOT NULL DEFAULT 12,
     -- 評価対象月数（1〜12）。按分計算に使用
+  is_midterm_entry      BOOLEAN     NOT NULL DEFAULT FALSE,
+    -- 期中目標設定（復職・中途入社）時にHR/ADMINがTRUEにセットする。フェーズ外のF-05実行を許可するフラグ
   is_midterm_closed     BOOLEAN     NOT NULL DEFAULT FALSE,
-    -- 休職・退職等により期中に評価プロセスを完了させた場合TRUE
+    -- 休職・退職等により期中に評価プロセスを完了させた場合TRUE。フェーズ外のF-08/F-09実行を許可するフラグ
   is_active             BOOLEAN     NOT NULL DEFAULT TRUE,
     -- 期中昇格（GRADE_PROMOTION）時に旧goal_setをFALSEにする論理削除フラグ
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1122,6 +1124,9 @@ PATCH  /api/admin/users/:userId                 # ユーザー更新
 POST   /api/admin/smarthr/import                # SmartHR CSVによる人事属性一括更新（v1.5追加）
 GET    /api/admin/organizations                 # 組織一覧
 POST   /api/admin/organizations                 # 組織スナップショット作成
+PATCH  /api/admin/goal-sets/:goalSetId          # 期中目標設定・期中クローズフラグのセット（HR/ADMINのみ）
+                                                # is_midterm_entry=TRUE: 期中目標設定を許可
+                                                # is_midterm_closed=TRUE: 期中クローズ（フェーズ外評価入力）を許可
 ```
 
 ---
