@@ -1,8 +1,8 @@
 # 社内MBO管理システム 仕様書
 
-**バージョン**: 1.7
+**バージョン**: 1.9
 **作成日**: 2026-03-27
-**最終更新日**: 2026-04-23
+**最終更新日**: 2026-04-30
 **対象読者**: 開発担当者、プロジェクトマネージャー、人事担当者
 
 ---
@@ -20,6 +20,7 @@
 | 1.6 | 2026-04-23 | モックアップ指摘に基づくUI仕様更新。中間振り返りに上長振り返りコメント入力欄を追加（F-07）。ダッシュボードの「ToDoリスト」を「対応事項」に改称し、目標サマリと並び順を入れ替え。ダッシュボードから前期評価表示を削除し過去の評価は左ナビ「過去の評価」（S-18）からのみ参照する方針に変更。ナビゲーションメニュー構成およびUIカラー方針（基本色 `#01AEBB` / `#FFFFFF`）を明記。 |
 | 1.7 | 2026-04-23 | 期中昇格（等級2→3）シナリオを仕様化。F-06に `GRADE_PROMOTION` 修正理由コードを追加。セクション4.3に期中昇格ケースを追加。セクション7.4の等級変更ルールを「2月昇格は当期下期から適用が原則」に修正。 |
 | 1.8 | 2026-04-27 | 関係者フィードバックに基づくUI用語・仕様更新。F-19「目標設定会議差し戻し」を「最終承認後差し戻し（難易度調整）」に改称し、APPROVED後の差し戻しであることを明確化。S-09目標一覧（評価者視点）に承認フローステップインジケーター表示を追加し、現在の承認段階を可視化。S-15タブ名・S-04ボタン名を同様に更新。 |
+| 1.9 | 2026-04-30 | 仕様全体の整合性見直しによる修正・明確化。①`goals.revision_reason`コメントに`MIDTERM_ENTRY`/`EARLY_CLOSURE`/`GRADE_PROMOTION`を追記。②S-05の修正理由コード選択肢を6種類に統一。③S-04の編集ボタン制御で未定義だった`PENDING_APPROVAL`を正式ステータス表記に修正。④付録Aのステータス遷移図の誤記（差し戻し後`DRAFT/REJECTED`→`REJECTED`のみ、差し戻し権限「経営/部長」→「経営」）を修正。⑤`approval_requests.status`の未使用DEFAULT値`'PENDING'`を削除。⑥`goal_sets`に`is_active`フラグを追加し、UNIQUE制約を条件付きインデックスに変更。期中昇格時の旧goal_set「破棄」を「論理削除」に統一。⑦修正申請中の`goal_sets.status`は`APPROVED`を維持することをF-06共通ルールに明記。⑧`approval_requests`のステップごと別レコード方式とMEETING_REJECTION時の各カラム意味を明記。⑨`goals.weight`の合計100%担保をAPIバリデーション＋DBトリガーの二重制約とする方針を明記。⑩監査ログ保持期間を90日から10年（目標・評価データと同等）に変更。⑪F-19の操作権限を`position = DEPT_MANAGER`（部長・事業部長）以上に限定しユニット長を除外。⑫`midterm_reviews`の`submitted_at`を`employee_submitted_at`/`manager_submitted_at`の2カラムに分離し中間振り返りの完了条件を明確化。⑬中途入社者の「初回は昇格判断のみ」を「初回評価期は昇給算定対象外・参考資料としてのみ使用」と具体化。⑭フェーズ外操作（期中目標設定・期中クローズ）のAPI制御方針を追記（HR/ADMINのフラグ付与による例外許可、一般ロールは403）。 |
 
 ---
 
@@ -385,6 +386,7 @@ src/
 **共通ルール:**
 
 - 修正申請（`approval_requests.request_type = GOAL_REVISION`）は上長承認が必要
+- **修正申請中の `goal_sets.status` は `APPROVED` のまま維持する**。`REVISION_APPROVED` になった時点で新バージョンの目標を `is_current = TRUE`、旧バージョンを `is_current = FALSE` に更新する（`goal_sets.status` は変化しない）
 - 承認されると新バージョンの目標として保存し、変更前の内容は履歴として保持する
 - 差し戻し時はコメント入力必須。社員・申請者に通知される
 - 修正回数に上限は設けないが、全バージョンを履歴として参照可能にする
@@ -398,7 +400,7 @@ src/
 
 - 各目標に対して進捗コメントを入力する（本人記入）
 - 目標修正が必要な場合はここから修正申請を起票する（F-06へ）
-- **上長振り返りコメント**: 上長（1次評価者）は各目標に対して振り返りコメントを入力できる。社員のコメントと上長のコメントは画面上で並列表示され、両者が入力した後に提出が完了する。上長コメントは `midterm_reviews.manager_comment` に保存する
+- **上長振り返りコメント**: 上長（1次評価者）は各目標に対して振り返りコメントを入力できる。社員のコメントと上長のコメントは画面上で並列表示される。社員が提出すると `employee_submitted_at` が記録され、上長が提出すると `manager_submitted_at` が記録される。**両カラムに値が入った時点で中間振り返りが「提出完了」**となる（どちらが先でも構わない）。上長コメントは `midterm_reviews.manager_comment` に保存する
 - **上長からの修正依頼（v1.4追加）**: 上長は各目標のフィードバック入力時に「修正依頼」フラグを立てられる。フラグが立つと社員に通知が届き、社員はF-06の修正申請を起票する起点となる。修正依頼フラグは `midterm_reviews.revision_requested` で管理する
 
 #### F-08 自己評価入力
@@ -520,7 +522,7 @@ APPROVED（確定）
 
 **操作仕様:**
 
-- 操作可能ロール: `MANAGER`（部長・事業部長）および `HR`・`ADMIN`
+- 操作可能ロール: `MANAGER` のうち `position = DEPT_MANAGER`（部長・事業部長、等級7〜8相当）以上、および `HR`・`ADMIN`。ユニット長（`position = UNIT_MANAGER`、等級5〜6）は本操作の権限を持たない
 - 操作可能ステータス: `APPROVED` のみ（`PENDING_*` や `DRAFT` には使用しない）
 - 差し戻し時は**コメント入力必須**。コメントは社員・直属上長に通知される
 - `MEETING_REJECTED` 状態の社員は目標を修正し、再度承認申請できる
@@ -543,9 +545,9 @@ APPROVED（確定）
 |-------|---------|-----------|-----------|---------|
 | **休職に入る** | 通常通り実施 | 勤務6か月以上：期中クローズ<br>勤務6か月未満：評価対象外 | 勤務月数/12で按分して復職後反映 | 休職前に自己・上長評価を実施しクローズ可能 |
 | **復職する** | 期中目標設定 | 勤務6か月以上：評価対象<br>勤務6か月未満：評価対象外 | 勤務月数/12で按分 | 復職タイミングで目標を立て、対象月数 (`target_months`) を記録 |
-| **中途入社** | 期中目標設定 | 入社6か月後から対象 | 初回は昇格判断のみ | 入社日を `organization_memberships.join_date` に記録し、6か月経過を判定 |
+| **中途入社** | 期中目標設定 | 入社6か月後から対象 | 初回評価期は昇給算定の対象外。360度評価の結果は昇格・登用判断の参考資料としてのみ使用する（MBOスコアも昇給算定には使用しない） | 入社日を `organization_memberships.join_date` に記録し、6か月経過を判定 |
 | **退職する** | - | 人事にてクローズ処理 | 対象外（原則） | 最終勤務日までの自己・上長評価を必要に応じ実施し、HRがプロセスを完了する |
-| **期中昇格（等級2→3）** | 下期から新規MBO目標設定 | 下期（2月〜9月）を評価対象 | 下期分（昇格後）のみ昇給反映 | 昇格タイミングは中間振り返り（2月）固定。既存の等級2時の goal_set は破棄し、`is_mbo_target = TRUE` の新しい goal_set を作成して4段階承認フローを開始する。`target_months = 8`（2〜9月）を記録する |
+| **期中昇格（等級2→3）** | 下期から新規MBO目標設定 | 下期（2月〜9月）を評価対象 | 下期分（昇格後）のみ昇給反映 | 昇格タイミングは中間振り返り（2月）固定。既存の等級2時の goal_set の `is_active` を FALSE に更新（論理削除）し、`is_mbo_target = TRUE` の新しい goal_set を作成して4段階承認フローを開始する。`target_months = 8`（2〜9月）を記録する |
 
 **評価対象外（Exempt）の条件:**
 
@@ -557,6 +559,17 @@ APPROVED（確定）
 
 - **期中目標設定**: 新入社員や復職者は、HRまたは上長の許可を得て、標準の目標設定フェーズ以外でも `F-05` に基づく入力・承認フローを開始できる。
 - **期中クローズ**: 休職や退職を控える社員は、標準の評価フェーズ（8〜9月）以外でも、`F-08`（自己評価）および `F-09`（上長評価）を入力し、人事の承認を経てプロセスを完了（クローズ）できる。
+
+**フェーズ外操作のAPI制御方針:**
+
+通常、目標設定・評価入力のAPIは `period_phases` に登録されたフェーズ期間内のみ受け付ける。フェーズ外操作は以下のルールで例外的に許可する。
+
+| 操作 | フェーズ外許可条件 |
+|------|------------------|
+| 期中目標設定（`POST /api/goals`） | `HR` または `ADMIN` ロールが `goal_sets.is_midterm_entry = TRUE` フラグを付与して作成する場合のみ許可 |
+| 期中クローズ（自己・上長評価の提出） | `HR` または `ADMIN` ロールが対象の `goal_sets.is_midterm_closed = TRUE` を事前にセットした場合のみ許可 |
+
+上記フラグのセットは `PATCH /api/admin/goal-sets/:goalSetId` エンドポイント（HR/ADMINのみ呼び出し可能）で行う。一般の `MEMBER` / `MANAGER` ロールはフェーズ外での目標設定・評価提出APIを呼び出すと `403 Forbidden` を返す。
 
 **360度評価の回答者ルール:**
 
@@ -663,7 +676,7 @@ APPROVED（確定）
 - **目標のバージョン履歴タブ**（修正申請の前後を比較表示）
 - ステータス履歴タイムライン
 - **最終承認後差し戻しボタン**（v1.3追加、v1.8改称）: `APPROVED` 状態のときのみ MANAGER以上に表示。クリックで差し戻しコメント入力モーダルを表示し、送信すると `MEETING_REJECTED` に遷移
-- **編集ボタンの表示制御**（v1.3追加）: `DRAFT`・`REJECTED`・`MEETING_REJECTED` のときのみ社員に編集ボタンを表示。`APPROVED`・`PENDING_APPROVAL` 時は表示しない
+- **編集ボタンの表示制御**（v1.3追加）: `DRAFT`・`REJECTED`・`MEETING_REJECTED` のときのみ社員に編集ボタンを表示。`APPROVED`・承認申請中（`PENDING_MANAGER` / `PENDING_DIVISION` / `PENDING_EXECUTIVE`）の場合は表示しない
 
 #### S-05 目標修正申請画面
 
@@ -673,7 +686,7 @@ APPROVED（確定）
 
 - 修正対象の現在の目標内容（変更前）
 - 修正後の目標内容入力フォーム（タイトル・詳細・達成基準・ウェイト）
-- 修正理由コードの選択（必須）: `KPI_CHANGE` / `STANDARD_DEVIATION` / `ROLE_CHANGE`
+- 修正理由コードの選択（必須）: `KPI_CHANGE` / `STANDARD_DEVIATION` / `ROLE_CHANGE` / `MIDTERM_ENTRY` / `EARLY_CLOSURE` / `GRADE_PROMOTION`（F-06参照）
 - 修正理由の補足コメント入力（必須）
 - **上長からの修正依頼コメント表示**（v1.4追加）: `midterm_reviews.revision_request_note` の内容を画面上部に表示。上長指示の内容を社員が確認しながら修正案を作成できる
 - **差し戻しコメント表示**（v1.4追加）: 再申請時は直前の差し戻しコメント（`approval_requests.rejection_note`）を画面上部に表示。どこが不適切だったかを確認しながら再修正できる
@@ -879,9 +892,14 @@ CREATE TABLE goal_sets (
     -- 評価対象月数（1〜12）。按分計算に使用
   is_midterm_closed     BOOLEAN     NOT NULL DEFAULT FALSE,
     -- 休職・退職等により期中に評価プロセスを完了させた場合TRUE
+  is_active             BOOLEAN     NOT NULL DEFAULT TRUE,
+    -- 期中昇格（GRADE_PROMOTION）時に旧goal_setをFALSEにする論理削除フラグ
   created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (employee_id, evaluation_period_id)
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  -- UNIQUE制約は有効なレコードのみを対象とする条件付きインデックスで担保する:
+  -- CREATE UNIQUE INDEX uq_goal_sets_active
+  --   ON goal_sets(employee_id, evaluation_period_id)
+  --   WHERE is_active = TRUE;
 );
 ```
 
@@ -908,11 +926,13 @@ CREATE TABLE goals (
   criteria_0_8   TEXT         NOT NULL,  -- 最低目標（0.8）の達成基準
   weight         NUMERIC(5,2) NOT NULL,
     -- デフォルト: KPI_1=50.00, KPI_2=30.00, ORG_CONTRIBUTION=20.00
-    -- 3目標の合計が100になることをアプリケーション層で担保
+    -- 3目標の合計が100になることをアプリケーション層（APIバリデーション）およびDBトリガーで二重に担保する
+    -- （DBトリガー例: goal_setの全goalsのweight合計が100でない場合はINSERT/UPDATEをRAISE EXCEPTION）
   visibility     VARCHAR(20)  NOT NULL DEFAULT 'DEPARTMENT',
     -- SELF_ONLY / DEPARTMENT / COMPANY
   revision_reason VARCHAR(30),
     -- KPI_CHANGE / STANDARD_DEVIATION / ROLE_CHANGE
+    -- / MIDTERM_ENTRY / EARLY_CLOSURE / GRADE_PROMOTION（v1.5/v1.7追加）
   revision_note  TEXT,
   created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -934,7 +954,11 @@ CREATE TABLE midterm_reviews (
     -- v1.4追加: 上長が「修正依頼」フラグを立てるとTRUE。社員への通知トリガーとなる
   revision_request_note TEXT,
     -- v1.4追加: 修正依頼時に上長が記入するコメント（revision_requested=TRUEのとき必須）
-  submitted_at        TIMESTAMPTZ,
+  employee_submitted_at TIMESTAMPTZ,
+    -- 社員がコメントを保存・提出した日時。NULLは未提出
+  manager_submitted_at  TIMESTAMPTZ,
+    -- 上長がコメントを入力・提出した日時。NULLは未入力
+    -- 両カラムがNOT NULLになった時点で中間振り返りが「提出完了」とみなされる
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (goal_id)
@@ -1032,6 +1056,11 @@ CREATE TABLE degree360_scores (
 > **v1.5 更新**: 承認プロセスの多段化に伴いステータスを細分化。
 
 ```sql
+-- 承認ステップごとに1レコードを作成する。
+-- 例: GOAL_APPROVAL（4段階）では上長・事業部長・経営の各ステップで計3レコードが順番に生成される。
+-- requester_id: 申請を起こした社員（全ステップ共通）
+-- approver_id:  当該ステップの承認者（ステップごとに異なる）
+-- MEETING_REJECTION: requester_id=差し戻しを実行した部長、approver_id=社員（通知先）とする
 CREATE TABLE approval_requests (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   request_type   VARCHAR(30) NOT NULL,
@@ -1039,9 +1068,9 @@ CREATE TABLE approval_requests (
   goal_set_id    UUID        NOT NULL REFERENCES goal_sets(id),
   requester_id   UUID        NOT NULL REFERENCES employees(id),
   approver_id    UUID        NOT NULL REFERENCES employees(id),
-  status         VARCHAR(30) NOT NULL DEFAULT 'PENDING',
-    -- 目標設定用: PENDING_MANAGER / PENDING_DIVISION / PENDING_EXECUTIVE
-    -- 目標修正用: REVISION_PENDING_MANAGER / REVISION_PENDING_DIVISION / REVISION_PENDING_EXECUTIVE
+  status         VARCHAR(30) NOT NULL,
+    -- 目標設定用（初期値: PENDING_MANAGER）: PENDING_MANAGER / PENDING_DIVISION / PENDING_EXECUTIVE
+    -- 目標修正用（初期値: REVISION_PENDING_MANAGER）: REVISION_PENDING_MANAGER / REVISION_PENDING_DIVISION / REVISION_PENDING_EXECUTIVE
     -- 最終結果: APPROVED / REJECTED / REVISION_APPROVED / REVISION_REJECTED
   rejection_note TEXT,
     -- 差し戻し・修正依頼時のコメント。REJECTED / REVISION_REJECTED / MEETING_REJECTION 時は必須
@@ -1138,7 +1167,7 @@ organization_memberships
 
 | 変更タイミング | 適用ルール |
 |--------------|-----------|
-| 中間振り返り（2月）での等級2→3昇格 | **当期下期（2月〜9月）から適用が原則**。既存の等級2時の goal_set を破棄し、`is_mbo_target = TRUE` の新しい goal_set を作成する。修正理由コード `GRADE_PROMOTION` を使用（→ F-06） |
+| 中間振り返り（2月）での等級2→3昇格 | **当期下期（2月〜9月）から適用が原則**。既存の等級2時の goal_set の `is_active` を FALSE に更新（論理削除）し、`is_mbo_target = TRUE` の新しい goal_set を作成する。修正理由コード `GRADE_PROMOTION` を使用（→ F-06） |
 | 上記以外のタイミングでの等級変更 | 原則として次期から適用。HR判断で当期適用も可能 |
 
 ### 7.5 雇用形態変更の扱い
@@ -1167,7 +1196,7 @@ organization_memberships
 - **認可**: ロールベースアクセス制御（RBAC）を徹底し、APIレベルで権限チェックを実施する
 - **通信**: 全通信をHTTPS（TLS 1.2以上）で暗号化する
 - **入力検証**: すべてのAPI入力に対してバリデーションを行い、SQLインジェクション・XSSを防ぐ
-- **監査ログ**: 目標の作成・変更・承認・評価確定など重要操作のログを90日以上保持する
+- **監査ログ**: 目標の作成・変更・承認・評価確定など重要操作のログを**10年間**保持する（目標・評価データと同等の保存期間。人事制度上の証跡として評価期をまたいだ参照が必要なため）
 - **セッション**: セッションタイムアウトは30分（非アクティブ時）とする
 
 ### 8.3 可用性・信頼性
@@ -1236,8 +1265,8 @@ PENDING_MANAGER（直属上長承認待ち）
 PENDING_DIVISION（事業部長承認待ち）  REJECTED
   │ 事業部長が承認          │ 差し戻し後修正
   ↓                       ↓
-PENDING_EXECUTIVE（経営承認待ち）    DRAFT / REJECTED
-  │ 経営が承認             │ 経営/部長が差し戻し
+PENDING_EXECUTIVE（経営承認待ち）    REJECTED
+  │ 経営が承認             │ 経営が差し戻し
   ↓                       ↓
 APPROVED（確定）
   │ 難易度調整が必要な場合（最終承認後差し戻し）
