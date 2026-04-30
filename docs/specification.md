@@ -21,6 +21,7 @@
 | 1.7 | 2026-04-23 | 期中昇格（等級2→3）シナリオを仕様化。F-06に `GRADE_PROMOTION` 修正理由コードを追加。セクション4.3に期中昇格ケースを追加。セクション7.4の等級変更ルールを「2月昇格は当期下期から適用が原則」に修正。 |
 | 1.8 | 2026-04-27 | 関係者フィードバックに基づくUI用語・仕様更新。F-19「目標設定会議差し戻し」を「最終承認後差し戻し（難易度調整）」に改称し、APPROVED後の差し戻しであることを明確化。S-09目標一覧（評価者視点）に承認フローステップインジケーター表示を追加し、現在の承認段階を可視化。S-15タブ名・S-04ボタン名を同様に更新。 |
 | 1.9 | 2026-04-30 | 仕様全体の整合性見直しによる修正・明確化。①`goals.revision_reason`コメントに`MIDTERM_ENTRY`/`EARLY_CLOSURE`/`GRADE_PROMOTION`を追記。②S-05の修正理由コード選択肢を6種類に統一。③S-04の編集ボタン制御で未定義だった`PENDING_APPROVAL`を正式ステータス表記に修正。④付録Aのステータス遷移図の誤記（差し戻し後`DRAFT/REJECTED`→`REJECTED`のみ、差し戻し権限「経営/部長」→「経営」）を修正。⑤`approval_requests.status`の未使用DEFAULT値`'PENDING'`を削除。⑥`goal_sets`に`is_active`フラグを追加し、UNIQUE制約を条件付きインデックスに変更。期中昇格時の旧goal_set「破棄」を「論理削除」に統一。⑦修正申請中の`goal_sets.status`は`APPROVED`を維持することをF-06共通ルールに明記。⑧`approval_requests`のステップごと別レコード方式とMEETING_REJECTION時の各カラム意味を明記。⑨`goals.weight`の合計100%担保をAPIバリデーション＋DBトリガーの二重制約とする方針を明記。⑩監査ログ保持期間を90日から10年（目標・評価データと同等）に変更。⑪F-19の操作権限を`position = DEPT_MANAGER`（部長・事業部長）以上に限定しユニット長を除外。⑫`midterm_reviews`の`submitted_at`を`employee_submitted_at`/`manager_submitted_at`の2カラムに分離し中間振り返りの完了条件を明確化。⑬中途入社者の「初回は昇格判断のみ」を「初回評価期は昇給算定対象外・参考資料としてのみ使用」と具体化。⑭フェーズ外操作（期中目標設定・期中クローズ）のAPI制御方針を追記（HR/ADMINのフラグ付与による例外許可、一般ロールは403）。 |
+| 1.10 | 2026-04-30 | 認証方式を見直し、SSO / 社内IdP連携前提の記述を廃止。このシステム専用のID・パスワード認証を採用する方針に統一。 |
 
 ---
 
@@ -137,7 +138,7 @@ Vercel（Next.js: フロントエンド + API Routes）
   ↓
 Supabase
   ├ PostgreSQL（メインDB）← Prisma ORM経由
-  ├ Auth（認証・SSO）
+  ├ Auth（認証）
   └ Storage（将来の添付ファイル用）
 ```
 
@@ -161,7 +162,7 @@ Supabase
 | バックエンド | Next.js Route Handlers | API Routes |
 | ORM | Prisma | TypeScript型安全、マイグレーション管理 |
 | データベース | PostgreSQL（Supabase） | PgBouncer内蔵でコネクションプール管理 |
-| 認証 | Supabase Auth | OAuth2 / OIDC対応、社内IdP連携 |
+| 認証 | Supabase Auth | システム専用のID・パスワード認証を実装 |
 | ホスティング | Vercel | CI/CD・プレビュー環境込み |
 | ファイルストレージ | Supabase Storage | 将来の添付ファイル対応 |
 | メール通知 | Supabase Edge Functions + SendGrid | トランザクションメール |
@@ -197,7 +198,7 @@ src/
 │   ├── reviews/                      # 評価関連コンポーネント
 │   └── layout/                       # ヘッダー・サイドバー等
 ├── lib/
-│   ├── auth.ts                       # Supabase Auth設定
+│   ├── auth.ts                       # Supabase Auth設定（ID・パスワード認証）
 │   ├── db.ts                         # Prismaクライアント
 │   └── permissions.ts                # 権限チェックロジック
 ├── prisma/
@@ -276,7 +277,7 @@ src/
 
 | 機能ID | 機能名 | 優先度 | 説明 |
 |--------|--------|--------|------|
-| F-01 | 認証・SSO連携 | 必須 | Supabase AuthによるSSO認証 |
+| F-01 | 認証 | 必須 | Supabase AuthによるID・パスワード認証 |
 | F-02 | ユーザー管理 | 必須 | 社員情報・ロール・等級・雇用形態の管理 |
 | F-03 | 組織管理 | 必須 | 部署・組織構造の管理（組織変更対応） |
 | F-04 | 評価期管理 | 必須 | 評価サイクルの期間・フェーズ管理 |
@@ -1197,7 +1198,7 @@ organization_memberships
 
 ### 8.2 セキュリティ
 
-- **認証**: Supabase Auth によるSSO（OAuth2 / OIDC）を必須とする
+- **認証**: Supabase Auth によるID・パスワード認証を必須とする
 - **認可**: ロールベースアクセス制御（RBAC）を徹底し、APIレベルで権限チェックを実施する
 - **通信**: 全通信をHTTPS（TLS 1.2以上）で暗号化する
 - **入力検証**: すべてのAPI入力に対してバリデーションを行い、SQLインジェクション・XSSを防ぐ
@@ -1232,7 +1233,7 @@ organization_memberships
 | フロントエンド | Vercel | AWS Amplify Hosting | Next.jsのままデプロイ先変更のみ |
 | データベース | Supabase PostgreSQL | Amazon RDS for PostgreSQL | PostgreSQL → PostgreSQL のため移行容易 |
 | コネクションプール | Supabase PgBouncer内蔵 | Amazon RDS Proxy | 設定変更のみ |
-| 認証 | Supabase Auth | Amazon Cognito | NextAuth.jsを挟む形で切り替え |
+| 認証 | Supabase Auth（ID・パスワード認証） | Amazon Cognito | メール/社員IDベースの認証へ切り替え |
 | ストレージ | Supabase Storage | Amazon S3 | SDK切り替えのみ |
 | メール通知 | SendGrid | Amazon SES | 送信API切り替えのみ |
 
