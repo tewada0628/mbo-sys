@@ -1,4 +1,4 @@
-# 初回実装 タスクリスト
+# 初回実装 タスクリスト（MVP）
 
 **ステアリングディレクトリ**: `.steering/20260430-initial-implementation/`  
 **作成日**: 2026-04-30  
@@ -80,8 +80,8 @@
 - [ ] `src/components/layout/AppShell.tsx` 作成
 - [ ] `src/components/layout/Sidebar.tsx` 作成（ロール別ナビゲーション）
 - [ ] `src/components/layout/Header.tsx` 作成（通知アイコン + ユーザーメニュー）
-- [ ] `src/app/(main)/layout.tsx` 作成（AppShell 埋め込み）
 - [ ] `src/app/layout.tsx` 作成（ルートレイアウト / フォント / グローバルCSS）
+- [ ] `src/app/(main)/layout.tsx` 作成（AppShell 埋め込み）
 
 **完了条件**: ダッシュボードURLにアクセスするとサイドバー付きレイアウトが表示される
 
@@ -109,7 +109,7 @@
   - [ ] 達成基準（1.2/1.0/0.8水準）入力
   - [ ] KPIパターン選択（5種類: KPI_DECOMPOSITION / LEADING_INDICATOR / ROLE_IN_GOAL / UPPER_GOAL / TEAM_GROWTH）
   - [ ] 公開範囲（visibility）選択（SELF_ONLY / DEPARTMENT / COMPANY）
-  - [ ] 等級1〜2（`is_mbo_target=false`）の場合は保存時に status を SAVED に設定（承認申請なし）
+  - [ ] MBO対象外（等級1〜2 / CONTRACT / ASSISTANT）は保存時に status を SAVED に設定し承認申請ボタンを非表示
 - [ ] `src/components/goals/ApprovalStepIndicator.tsx` 作成（4段階インジケーター）
 - [ ] `src/components/goals/GoalVersionHistory.tsx` 作成
 - [ ] `src/components/goals/GoalVisibilityBadge.tsx` 作成
@@ -125,7 +125,7 @@
 - [ ] `src/app/api/goals/[goalSetId]/submit/route.ts` 作成（承認申請: DRAFT → PENDING_MANAGER）
 - [ ] `src/app/api/goals/[goalSetId]/meeting-reject/route.ts` 作成（最終承認後差し戻し）
 
-**完了条件**: 目標セットを作成・保存でき、承認申請ができる / APPROVED後の編集が 409 になる / 等級1〜2は申請なしで SAVED になる
+**完了条件**: 目標セットを作成・保存でき、承認申請ができる / APPROVED後の編集が 409 になる / MBO対象外は申請なしで SAVED になる
 
 ---
 
@@ -150,9 +150,9 @@
 - [ ] `src/app/api/approvals/route.ts` 作成
 - [ ] `src/app/api/approvals/[requestId]/approve/route.ts` 作成
   - [ ] 承認ステップに応じた status 遷移（PENDING_MANAGER → PENDING_DIVISION → PENDING_EXECUTIVE → APPROVED）
-  - [ ] 各承認時に `notifications` テーブルへ通知レコードを書き込む（P0スコープ）
+  - [ ] 各承認時に `notifications` テーブルへ通知レコードを書き込む
 - [ ] `src/app/api/approvals/[requestId]/reject/route.ts` 作成
-  - [ ] 差し戻し時に `notifications` テーブルへ通知レコードを書き込む（P0スコープ）
+  - [ ] 差し戻し時に `notifications` テーブルへ通知レコードを書き込む
 
 **完了条件**: 4段階の承認フローが正常に動作する / 差し戻し後に社員が再申請できる
 
@@ -192,6 +192,8 @@
 
 - [ ] `src/lib/score.ts` 作成（MBOスコア計算 / 360度スコア合算ロジック）
 - [ ] `src/lib/phases.ts` 作成（フェーズ判定ロジック）
+  - [ ] フェーズ値定義: `GOAL_SETTING` / `MIDTERM` / `SELF_REVIEW` / `MANAGER_REVIEW`
+  - [ ] 一般ロールのフェーズ外操作で 403、HR/ADMIN は全フェーズ操作可能
 - [ ] `src/components/admin/EvaluationAdjustmentTable.tsx` 作成
 - [ ] `src/app/(main)/admin/review-adjustment/page.tsx` 作成
   - [ ] 総合評価（S/A/B/C/D）選択・確定 UI
@@ -214,9 +216,9 @@
 
 ---
 
-## フェーズ6: P1 追加機能
+## フェーズ6: 管理画面（S-12/S-13/S-14）
 
-### 6-1. 管理画面（S-12/S-13/S-14）
+システム運用に必須のため P0 完了後に実装する。
 
 - [ ] `src/components/admin/UserManagementTable.tsx` 作成
 - [ ] `src/components/admin/OrganizationTree.tsx` 作成
@@ -232,61 +234,6 @@
 - [ ] `src/app/api/admin/periods/[periodId]/phases/route.ts` 作成（PATCH）
 
 **完了条件**: 社員・組織・評価期の CRUD が HR/ADMIN ロールで操作できる
-
----
-
-### 6-2. 通知（S-17）
-
-- [ ] `src/lib/notifications.ts` 作成（DB書き込み関数 + Edge Function 呼び出し）
-- [ ] `src/hooks/useNotifications.ts` 作成
-- [ ] `src/components/notifications/NotificationList.tsx` 作成
-- [ ] `src/app/(main)/notifications/page.tsx` 作成
-- [ ] `src/app/api/notifications/route.ts` 作成（GET）
-- [ ] `src/app/api/notifications/[id]/read/route.ts` 作成（PATCH）
-- [ ] Header の通知アイコンに未読バッジ表示（SWRポーリング）
-- [ ] Supabase Edge Function セットアップ（メール送信）
-
-**完了条件**: 通知一覧が表示され、既読更新できる / 承認・差し戻し時にメールが送信される
-
----
-
-### 6-3. 過去の評価（S-18）
-
-- [ ] `src/app/(main)/evaluations/history/page.tsx` 作成
-- [ ] `src/app/api/evaluations/history/route.ts` 作成（GET: ログインユーザーの過去評価一覧）
-
-**完了条件**: 過去評価期の総合評価・MBOスコアが一覧で確認できる
-
----
-
-### 6-4. SmartHR CSV インポート
-
-- [ ] `src/app/api/admin/smarthr/import/route.ts` 作成（CSV パース + `employees` 差分更新）
-  - [ ] SmartHR エクスポート CSV のカラム定義に準拠したパース処理
-  - [ ] バリデーションエラー行をスキップし、エラー行番号と理由を JSON で返す
-
-**完了条件**: SmartHR CSV をアップロードして社員情報を差分更新できる / エラー行がレスポンスで確認できる
-
----
-
-### 6-5. 監査ログ
-
-- [ ] `src/app/api/admin/audit-logs/route.ts` 作成（GET: HR/ADMIN のみ）
-- [ ] 承認・評価操作後の `audit_logs` 書き込み処理を各 Route Handler に組み込む
-
-**完了条件**: 承認・評価操作が監査ログに記録され、HR/ADMIN が一覧参照できる
-
----
-
-## フェーズ7: P2 任意機能
-
-- [ ] `src/app/(main)/goals/all/page.tsx` 作成（S-10 目標一覧・全社）
-- [ ] `src/app/(main)/employees/[employeeId]/page.tsx` 作成（S-11 社員プロフィール）
-- [ ] `src/app/(main)/reports/summary/page.tsx` 作成（S-16 評価サマリ）
-- [ ] `src/app/api/admin/degree360-scores/route.ts` 作成（POST）
-- [ ] `src/app/api/admin/degree360-scores/import/route.ts` 作成（CSV インポート）
-- [ ] `src/app/api/employees/[employeeId]/history/route.ts` 作成
-- [ ] `src/app/api/reports/summary/route.ts` 作成
 
 ---
 
@@ -306,6 +253,46 @@
 - [ ] Vercel に環境変数設定（`NEXT_PUBLIC_SUPABASE_URL` 等）
 - [ ] Supabase に環境変数設定（`SENDGRID_API_KEY` 等）
 - [ ] 本番DBマイグレーション実行
-- [ ] Supabase Edge Function デプロイ（メール通知）
 - [ ] 初期データ投入（評価期・管理者ユーザー等）
 - [ ] ベータ版動作確認（社内メンバー限定公開）
+
+---
+
+## ポストMVP
+
+MVP リリース後に実装する機能。スキーマは初回マイグレーションで作成済み。
+
+### 通知（S-17）
+
+- [ ] `src/lib/notifications.ts` 作成（DB書き込み関数 + Edge Function 呼び出し）
+- [ ] `src/hooks/useNotifications.ts` 作成
+- [ ] `src/components/notifications/NotificationList.tsx` 作成
+- [ ] `src/app/(main)/notifications/page.tsx` 作成
+- [ ] `src/app/api/notifications/route.ts` 作成（GET）
+- [ ] `src/app/api/notifications/[id]/read/route.ts` 作成（PATCH）
+- [ ] Header の通知アイコンに未読バッジ表示（SWRポーリング）
+- [ ] Supabase Edge Function セットアップ（メール送信）
+
+### 過去の評価（S-18）
+
+- [ ] `src/app/(main)/evaluations/history/page.tsx` 作成
+- [ ] `src/app/api/evaluations/history/route.ts` 作成
+
+### SmartHR CSV インポート
+
+- [ ] `src/app/api/admin/smarthr/import/route.ts` 作成（CSV パース + `employees` 差分更新）
+
+### 監査ログ（F-16）
+
+- [ ] `src/app/api/admin/audit-logs/route.ts` 作成（GET: HR/ADMIN のみ）
+- [ ] 承認・評価操作後の `audit_logs` 書き込み処理を各 Route Handler に組み込む
+
+### P2機能
+
+- [ ] `src/app/(main)/goals/all/page.tsx` 作成（S-10 目標一覧・全社）
+- [ ] `src/app/(main)/employees/[employeeId]/page.tsx` 作成（S-11 社員プロフィール）
+- [ ] `src/app/(main)/reports/summary/page.tsx` 作成（S-16 評価サマリ）
+- [ ] `src/app/api/admin/degree360-scores/route.ts` 作成（POST）
+- [ ] `src/app/api/admin/degree360-scores/import/route.ts` 作成（CSV インポート）
+- [ ] `src/app/api/employees/[employeeId]/history/route.ts` 作成
+- [ ] `src/app/api/reports/summary/route.ts` 作成

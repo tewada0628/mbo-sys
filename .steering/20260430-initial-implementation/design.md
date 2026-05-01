@@ -287,10 +287,11 @@ POST   /api/goals/:goalSetId/meeting-reject    最終承認後差し戻し（DEP
 - それ以外のステータス（`SAVED` / `PENDING_*` / `APPROVED`）への PATCH は 409 を返す
 - `APPROVED` 状態の目標セットへの編集は必ず 5-3 の修正申請フローを経ること
 
-**等級1〜2社員の取り扱い**:
+**MBO対象外社員の取り扱い（`is_mbo_target = false`）**:
 
-- `is_mbo_target === false` の社員は承認フローなし
-- 目標セット保存時に `status` を直接 `SAVED` に設定（`submit` API は呼び出さない）
+- 対象: 等級1〜2 / 契約社員（`employee_type = CONTRACT`）/ アシスタント（`employee_type = ASSISTANT`）
+- 承認フローなし。目標セット保存時に `status` を直接 `SAVED` に設定（`submit` API は呼び出さない）
+- 承認申請ボタンは画面に表示しない
 - `SAVED` 状態では中間振り返り・自己評価・上長評価が通常通り行える
 
 **作成ファイル**:
@@ -460,7 +461,9 @@ GET    /api/admin/evaluations/:goalSetId/score-preview  スコアプレビュー
 - `src/app/(main)/admin/review-adjustment/page.tsx`
 - `src/components/admin/EvaluationAdjustmentTable.tsx`
 - `src/lib/score.ts`（MBOスコア・360度スコア計算ロジック）
-- `src/lib/phases.ts`（フェーズ判定ロジック）
+- `src/lib/phases.ts`（フェーズ判定ロジック）  
+  フェーズ値: `GOAL_SETTING` / `MIDTERM` / `SELF_REVIEW` / `MANAGER_REVIEW`  
+  一般ロールはフェーズ外操作で 403。HR / ADMIN は全フェーズで操作可能
 - `src/app/api/admin/evaluations/route.ts`
 - `src/app/api/admin/evaluations/[goalSetId]/route.ts`
 - `src/app/api/admin/evaluations/[goalSetId]/score-preview/route.ts`
