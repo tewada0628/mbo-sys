@@ -36,7 +36,7 @@ graph TD
     end
 
     subgraph Supabase["Supabase"]
-        Auth["Supabase Auth\n（ID・パスワード認証）"]
+        Auth["Supabase Auth\n（メールOTP認証）"]
         DB["PostgreSQL\n（Prisma ORM経由）"]
         Storage["Storage\n（将来の添付ファイル用）"]
         EdgeFn["Edge Functions\n（メール通知）"]
@@ -65,7 +65,7 @@ graph TD
 | バックエンド | Next.js Route Handlers | REST API実装 |
 | ORM | Prisma | 型安全なDB操作・マイグレーション |
 | データベース | PostgreSQL (Supabase) + PgBouncer | メインDB・コネクションプール |
-| 認証 | Supabase Auth | ID・パスワード認証・セッション管理 |
+| 認証 | Supabase Auth | メールOTP認証（パスワード不要）・JWT発行・セッション管理 |
 | ホスティング | Vercel | CI/CD・プレビュー環境 |
 | メール通知 | Supabase Edge Functions + SendGrid | 承認通知・リマインダー |
 | CI/CD | GitHub Actions + Vercel | Lint・テスト・デプロイ自動化 |
@@ -793,7 +793,7 @@ components/
 
 ### 7.1 認証・認可
 
-- **認証方式**: Supabase Auth（ID・パスワード認証）
+- **認証方式**: Supabase Auth（メールOTP認証・パスワード不要）
 - **セッション管理**: JWT トークン（Supabase 発行）。Next.js middleware でトークン検証
 - **権限チェック**: `lib/permissions.ts` に集約。Route Handler の先頭で実行
 - **フェーズ制御**: 各 API は `period_phases` テーブルの現在フェーズを確認し、フェーズ外の操作は `403 Forbidden` を返す（例外: `is_midterm_entry` / `is_midterm_closed` フラグが立っている場合）

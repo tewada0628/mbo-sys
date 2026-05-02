@@ -35,7 +35,7 @@
 | バックエンド | Next.js Route Handlers | - | Next.jsと同一リポジトリで管理・フルスタック構成 |
 | ORM | Prisma | 5.x | TypeScript型安全・マイグレーション管理 |
 | データベース | PostgreSQL (Supabase) | 15.x | Supabase PgBouncer内蔵でコネクションプール管理 |
-| 認証 | Supabase Auth | - | ID・パスワード認証。JWT発行・セッション管理 |
+| 認証 | Supabase Auth | - | メールOTP認証（パスワード不要）。JWT発行・セッション管理 |
 | ホスティング | Vercel | - | CI/CD・プレビュー環境・Edge Networkが組み込み済み |
 | ファイルストレージ | Supabase Storage | - | 将来の添付ファイル対応。S3互換API |
 | メール通知 | Supabase Edge Functions + SendGrid | - | トランザクションメール配信 |
@@ -223,10 +223,13 @@ Vercel（自動デプロイ）
 
 ### 5.1 認証
 
-- **方式**: Supabase Auth によるシステム専用のID・パスワード認証
+- **方式**: Supabase Auth によるメールOTP認証（パスワード不要・2ステップ式）
+  - Step 1: メールアドレスを入力 → Supabase が6桁の数字コードを送信（`signInWithOtp()`）
+  - Step 2: 届いたコードを入力 → Supabase が検証してJWTを発行（`verifyOtp()`）
+- **OTP有効期限**: 60分（Supabase Auth 設定で変更可能）
+- **新規ユーザー自動作成**: 無効（`shouldCreateUser: false`）。事前にADMINが登録したメールアドレスのみログイン可
 - **JWT**: Supabase が発行するJWTをセッショントークンとして使用
 - **セッションタイムアウト**: 非アクティブ30分でセッションを失効
-- **パスワードポリシー**: 最低8文字。英字と数字をそれぞれ1文字以上含むこと。Supabase Auth の Password Strength 設定で強制する
 
 ### 5.2 認可
 
@@ -315,7 +318,7 @@ Vercel（自動デプロイ）
 | フロントエンド | Vercel | AWS Amplify Hosting | Next.jsのままデプロイ先変更のみ |
 | データベース | Supabase PostgreSQL | Amazon RDS for PostgreSQL | PostgreSQL → PostgreSQL のため移行容易 |
 | コネクションプール | Supabase PgBouncer内蔵 | Amazon RDS Proxy | 設定変更のみ |
-| 認証 | Supabase Auth（ID・パスワード認証） | Amazon Cognito | メール/社員IDベースの認証へ切り替え |
+| 認証 | Supabase Auth（メールOTP認証） | Amazon Cognito | Cognito の Magic Link / OTP に切り替え |
 | ストレージ | Supabase Storage | Amazon S3 | SDK切り替えのみ |
 | メール通知 | SendGrid | Amazon SES | 送信API切り替えのみ |
 
@@ -336,6 +339,6 @@ RDS for PostgreSQL（プライベートサブネット内）
 ### 9.2 移行時の注意点
 
 - Prisma の接続文字列を RDS に変更するだけで ORM レイヤーは移行可能
-- Supabase Auth → Amazon Cognito 移行時はユーザーのパスワードリセットが必要
+- Supabase Auth → Amazon Cognito 移行時はメールアドレスをエクスポートし、Cognito ユーザープールにインポートする（パスワードがないため移行はシンプル）
 - Supabase の Row Level Security（RLS）を使用している場合は事前に解除し、API層の RBAC に一本化する
 - 移行前に Supabase から PostgreSQL ダンプを取得し、RDS にリストアして動作確認を実施する

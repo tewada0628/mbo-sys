@@ -194,9 +194,37 @@ audit_logs         監査ログ（保持期間10年）
 
 3. **S-01 ログイン画面実装**（`app/(auth)/login/page.tsx`）
 
-   - Supabase の `signInWithPassword()` を使用
-   - ログイン成功後は `/dashboard` へリダイレクト
+   認証はパスワード不要の **メールOTP方式（2ステップ）** を採用する。
+
+   **Step 1 — メールアドレス入力画面**
+
+   ```typescript
+   // ユーザーがメールアドレスを入力して「コードを送信」をクリック
+   const { error } = await supabase.auth.signInWithOtp({
+     email,
+     options: { shouldCreateUser: false }, // 未登録メールは拒否
+   });
+   // 成功 → Step 2 の入力欄を表示
+   ```
+
+   **Step 2 — コード入力画面**
+
+   ```typescript
+   // ユーザーが届いた6桁コードを入力して「ログイン」をクリック
+   const { error } = await supabase.auth.verifyOtp({
+     email,
+     token,      // 6桁の数字コード
+     type: 'email',
+   });
+   // 成功 → /dashboard へリダイレクト
+   ```
+
+   **UI仕様**
+
+   - Step 1: メールアドレス入力欄 + 「コードを送信」ボタン
+   - Step 2: 「`xxx@xxx.xxx` 宛にコードを送りました」案内 + 6桁コード入力欄（数字のみ） + 「ログイン」ボタン + 「別のアドレスで試す」リンク
    - エラー時は赤色（`#c0392b`）でメッセージ表示
+   - `shouldCreateUser: false` により、ADMINが登録していないメールアドレスからのログイン試行はStep 1でエラーとする
 
 4. **ログアウト機能実装**（Header コンポーネントに組み込み）
 

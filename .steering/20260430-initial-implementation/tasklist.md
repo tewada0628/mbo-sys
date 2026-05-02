@@ -62,14 +62,18 @@
 
 - [ ] `src/lib/auth.ts` 作成（Supabase Auth SSR クライアント）
 - [ ] `src/middleware.ts` 作成（JWT検証 + 未認証リダイレクト）
-- [ ] `src/app/(auth)/login/page.tsx` 作成（ログインフォーム）
-  - [ ] メールアドレス + パスワード入力
-  - [ ] `signInWithPassword()` 呼び出し
+- [ ] `src/app/(auth)/login/page.tsx` 作成（メールOTP 2ステップログイン）
+  - [ ] Step 1: メールアドレス入力欄 + 「コードを送信」ボタン
+  - [ ] `signInWithOtp({ email, options: { shouldCreateUser: false } })` 呼び出し
+  - [ ] Step 2: 「〇〇@〇〇 宛にコードを送りました」案内 + 6桁コード入力欄 + 「ログイン」ボタン
+  - [ ] `verifyOtp({ email, token, type: 'email' })` 呼び出し
   - [ ] ログイン成功 → `/dashboard` リダイレクト
-  - [ ] エラー表示（赤色 `#c0392b`）
+  - [ ] 未登録メールアドレス / コード誤り時のエラー表示（赤色 `#c0392b`）
+  - [ ] 「別のアドレスで試す」リンク（Step 2 → Step 1 に戻る）
+- [ ] Supabase Dashboard で OTP メールテンプレートを日本語化
 - [ ] ログアウト機能（Header に組み込み）
 
-**完了条件**: ログイン・ログアウトが動作する / 未認証アクセスがリダイレクトされる
+**完了条件**: メールOTPでログイン・ログアウトが動作する / 未認証アクセスがリダイレクトされる / 未登録メールでのログイン試行がエラーになる
 
 ---
 
