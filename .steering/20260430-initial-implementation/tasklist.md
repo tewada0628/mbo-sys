@@ -8,20 +8,20 @@
 
 ## フェーズ1: 環境セットアップ
 
-- [ ] Next.js プロジェクト初期化（`bunx create-next-app@latest`）
-- [ ] 依存パッケージインストール（Prisma / Supabase / shadcn/ui / Zod / React Hook Form / SWR / date-fns / TanStack Table）
-- [ ] `tailwind.config.ts` 設定（プライマリカラー `#01AEBB` / フォント / カスタムスクリーン）
-- [ ] `tsconfig.json` 設定（`strict: true` / `paths: { "@/*": ["./src/*"] }`）
-- [ ] `.eslintrc.json` 設定（`@typescript-eslint/no-explicit-any: error`）
-- [ ] `.prettierrc` 設定（セミコロン必須 / シングルクォート）
-- [ ] `postcss.config.js` 設定
-- [ ] `.env.example` 作成（全環境変数キー一覧）
-- [ ] `.gitignore` 更新（`.env.local` / `.next/` / `node_modules/` 等）
-- [ ] Supabase プロジェクト作成・`.env.local` 設定
-- [ ] shadcn/ui 初期化（`bunx shadcn@latest init`）
-- [ ] shadcn/ui コンポーネント追加（Button / Card / Badge / Dialog / Select / Textarea / Input / Table / Tabs）
-- [ ] `jest.config.ts` 作成（ユニットテスト環境）
-- [ ] `playwright.config.ts` 作成（E2Eテスト環境）
+- [x] Next.js プロジェクト初期化（`bunx create-next-app@latest`）
+- [x] 依存パッケージインストール（Prisma / Supabase / shadcn/ui / Zod / React Hook Form / SWR / date-fns / TanStack Table）
+- [x] `tailwind.config.ts` 設定（プライマリカラー `#01AEBB` / フォント / カスタムスクリーン）
+- [x] `tsconfig.json` 設定（`strict: true` / `paths: { "@/*": ["./src/*"] }`）
+- [x] `.eslintrc.json` 設定（`@typescript-eslint/no-explicit-any: error`）
+- [x] `.prettierrc` 設定（セミコロン必須 / シングルクォート）
+- [x] `postcss.config.js` 設定
+- [x] `.env.example` 作成（全環境変数キー一覧）
+- [x] `.gitignore` 更新（`.env.local` / `.next/` / `node_modules/` 等）
+- [x] Supabase プロジェクト作成・`.env.local` 設定
+- [x] shadcn/ui 初期化（`bunx shadcn@latest init`）
+- [x] shadcn/ui コンポーネント追加（Button / Card / Badge / Dialog / Select / Textarea / Input / Table / Tabs）
+- [x] `jest.config.ts` 作成（ユニットテスト環境）
+- [x] `playwright.config.ts` 作成（E2Eテスト環境）
 
 **完了条件**: `bun run dev` でエラーなく起動し、`localhost:3000` が表示される
 
@@ -29,30 +29,30 @@
 
 ## フェーズ2: DBスキーマ + Prismaセットアップ
 
-- [ ] `bunx prisma init` 実行
-- [ ] `prisma/schema.prisma` 作成（全テーブル定義）
-  - [ ] `employees`（role / position / grade / manager_id / employee_type / is_evaluation_exempt 等）
-  - [ ] `organizations`（親子ツリー構造）
-  - [ ] `periods`（phases JSON / フェーズ期間）
-  - [ ] `goal_sets`（status / is_mbo_target / is_active / target_months）
-  - [ ] `goals`（type / weight / kpi_pattern / criteria_* / revision_reason / visibility / is_current）
-  - [ ] `approval_requests`（type / status / step / approver_id）
-  - [ ] `midterm_reviews`（employee_submitted_at / manager_submitted_at）
-  - [ ] `self_reviews`
-  - [ ] `manager_reviews`（revision_requested フラグ含む）
-  - [ ] `final_evaluations`（overall_grade: S/A/B/C/D 含む）
-  - [ ] `degree_360_scores`
-  - [ ] `notifications`
-  - [ ] `audit_logs`
-  - [ ] DBトリガー（`goals.weight` 合計100%制約）
-  - [ ] 条件付きUNIQUEインデックス（`goal_sets.is_active = TRUE`）
-- [ ] `src/lib/db.ts` 作成（Prisma クライアントシングルトン）
-- [ ] 初回マイグレーション実行（`bunx prisma migrate dev --name init`）
-- [ ] `prisma/seed.ts` 作成（開発用初期データ: 管理者・HR・社員サンプル・組織・評価期）
-- [ ] `src/types/index.ts` 作成（Prisma 型の再エクスポート + 独自 union 型）
-- [ ] `src/lib/validations/goal.ts` 作成（Zod スキーマ）
-- [ ] `src/lib/validations/review.ts` 作成（Zod スキーマ）
-- [ ] `src/lib/validations/admin.ts` 作成（Zod スキーマ）
+- [x] `bunx prisma init` 実行
+- [x] `prisma/schema.prisma` 作成（全テーブル定義）
+  - [x] `employees`（role / position / grade / manager_id / employee_type / is_evaluation_exempt 等）
+  - [x] `organizations`（親子ツリー構造）
+  - [x] `periods`（phases JSON / フェーズ期間）
+  - [x] `goal_sets`（status / is_mbo_target / is_active / target_months）
+  - [x] `goals`（type / weight / kpi_pattern / criteria_* / revision_reason / visibility / is_current）
+  - [x] `approval_requests`（type / status / step / approver_id）
+  - [x] `midterm_reviews`（employee_submitted_at / manager_submitted_at）
+  - [x] `self_reviews`
+  - [x] `manager_reviews`（revision_requested フラグ含む）
+  - [x] `final_evaluations`（overall_grade: S/A/B/C/D 含む）
+  - [x] `degree_360_scores`
+  - [x] `notifications`
+  - [x] `audit_logs`
+  - [x] DBトリガー（`goals.weight` 合計100%制約）
+  - [x] 条件付きUNIQUEインデックス（`goal_sets.is_active = TRUE`）
+- [x] `src/lib/db.ts` 作成（Prisma クライアントシングルトン）
+- [x] 初回マイグレーション実行（`bunx prisma migrate dev --name init`）
+- [x] `prisma/seed.ts` 作成（開発用初期データ: 管理者・HR・社員サンプル・組織・評価期）
+- [x] `src/types/index.ts` 作成（Prisma 型の再エクスポート + 独自 union 型）
+- [x] `src/lib/validations/goal.ts` 作成（Zod スキーマ）
+- [x] `src/lib/validations/review.ts` 作成（Zod スキーマ）
+- [x] `src/lib/validations/admin.ts` 作成（Zod スキーマ）
 
 **完了条件**: `bunx prisma studio` でテーブルが確認でき、シードデータが投入できる
 
@@ -60,18 +60,18 @@
 
 ## フェーズ3: 認証（S-01）
 
-- [ ] `src/lib/auth.ts` 作成（Supabase Auth SSR クライアント）
-- [ ] `src/middleware.ts` 作成（JWT検証 + 未認証リダイレクト）
-- [ ] `src/app/(auth)/login/page.tsx` 作成（メールOTP 2ステップログイン）
-  - [ ] Step 1: メールアドレス入力欄 + 「コードを送信」ボタン
-  - [ ] `signInWithOtp({ email, options: { shouldCreateUser: false } })` 呼び出し
-  - [ ] Step 2: 「〇〇@〇〇 宛にコードを送りました」案内 + 6桁コード入力欄 + 「ログイン」ボタン
-  - [ ] `verifyOtp({ email, token, type: 'email' })` 呼び出し
-  - [ ] ログイン成功 → `/dashboard` リダイレクト
-  - [ ] 未登録メールアドレス / コード誤り時のエラー表示（赤色 `#c0392b`）
-  - [ ] 「別のアドレスで試す」リンク（Step 2 → Step 1 に戻る）
-- [ ] Supabase Dashboard で OTP メールテンプレートを日本語化
-- [ ] ログアウト機能（Header に組み込み）
+- [x] `src/lib/auth.ts` 作成（Supabase Auth SSR クライアント）
+- [x] `src/middleware.ts` 作成（JWT検証 + 未認証リダイレクト）
+- [x] `src/app/(auth)/login/page.tsx` 作成（メールOTP 2ステップログイン）
+  - [x] Step 1: メールアドレス入力欄 + 「コードを送信」ボタン
+  - [x] `signInWithOtp({ email, options: { shouldCreateUser: false } })` 呼び出し
+  - [x] Step 2: 「〇〇@〇〇 宛にコードを送りました」案内 + 6桁コード入力欄 + 「ログイン」ボタン
+  - [x] `verifyOtp({ email, token, type: 'email' })` 呼び出し
+  - [x] ログイン成功 → `/dashboard` リダイレクト
+  - [x] 未登録メールアドレス / コード誤り時のエラー表示（赤色 `#c0392b`）
+  - [x] 「別のアドレスで試す」リンク（Step 2 → Step 1 に戻る）
+- [x] Supabase Dashboard で OTP メールテンプレートを日本語化
+- [x] ログアウト機能（Header に組み込み）
 
 **完了条件**: メールOTPでログイン・ログアウトが動作する / 未認証アクセスがリダイレクトされる / 未登録メールでのログイン試行がエラーになる
 
