@@ -1,0 +1,338 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  HR
+  MANAGER
+  TEAM_LEADER
+  MEMBER
+}
+
+enum EmployeeType {
+  REGULAR
+  CONTRACT
+  ASSISTANT
+}
+
+enum GoalType {
+  KPI_1
+  KPI_2
+  ORG_CONTRIBUTION
+}
+
+enum GoalSetStatus {
+  DRAFT
+  SAVED
+  PENDING_MANAGER
+  PENDING_DIVISION
+  PENDING_EXECUTIVE
+  APPROVED
+  REJECTED
+  MEETING_REJECTED
+}
+
+enum ApprovalRequestType {
+  GOAL_APPROVAL
+  GOAL_REVISION
+  MEETING_REJECTION
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PeriodStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum PhaseType {
+  GOAL_SETTING
+  MIDTERM
+  DEGREE_360
+  SELF_REVIEW
+  MANAGER_REVIEW
+  ADJUSTMENT
+}
+
+model Employee {
+  id            String    @id @default(uuid()) @db.Uuid
+  employeeCode  String    @unique @map("employee_code")
+  name          String
+  email         String    @unique
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  memberships       OrganizationMembership[]
+  goalSets          GoalSet[]
+  degree360Scores   Degree360Score[]
+  approvalRequests  ApprovalRequest[] @relation("Requester")
+  approvalResponses ApprovalRequest[] @relation("Approver")
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  // For manager relations in memberships
+  managedMemberships         OrganizationMembership[] @relation("Manager")
+  divisionManagedMemberships OrganizationMembership[] @relation("DivisionManager")
+
+  @@map("employees")
+}
+
+model OrganizationSnapshot {
+  id                 String           @id @default(uuid()) @db.Uuid
+  evaluationPeriodId String           @map("evaluation_period_id") @db.Uuid
+  name               String
+  parentId           String?          @map("parent_id") @db.Uuid
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  evaluationPeriod EvaluationPeriod @relation(fields: [evaluationPeriodId], references: [id])
+  parent           OrganizationSnapshot? @relation("OrgTree", fields: [parentId], references: [id])
+  children         OrganizationSnapshot[] @relation("OrgTree")
+  memberships      OrganizationMembership[]
+
+  @@map("organization_snapshots")
+}
+
+model OrganizationMembership {
+  id                     String    @id @default(uuid()) @db.Uuid
+  employeeId             String    @map("employee_id") @db.Uuid
+  organizationSnapshotId String    @map("organization_snapshot_id") @db.Uuid
+  grade                  Int       @db.SmallInt
+  gradeType              String    @map("grade_type")
+  position               String
+  employeeType           EmployeeType @map("employee_type")
+  roles                  Role[]
+  managerId              String?   @map("manager_id") @db.Uuid
+  divisionManagerId      String?   @map("division_manager_id") @db.Uuid
+  joinDate               DateTime  @map("join_date") @db.Date
+  validFrom              DateTime  @map("valid_from") @db.Date
+  validTo                DateTime? @map("valid_to") @db.Date
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  employee             Employee             @relation(fields: [employeeId], references: [id])
+  organizationSnapshot OrganizationSnapshot @relation(fields: [organizationSnapshotId], references: [id])
+  manager              Employee?            @relation("Manager", fields: [managerId], references: [id])
+  divisionManager      Employee?            @relation("DivisionManager", fields: [divisionManagerId], references: [id])
+  goalSets             GoalSet[]
+
+  @@map("organization_memberships")
+}
+
+model EvaluationPeriod {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  startDate DateTime     @map("start_date") @db.Date
+  endDate   DateTime     @map("end_date") @db.Date
+  status    PeriodStatus @default(INACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  phases                PeriodPhase[]
+  organizationSnapshots OrganizationSnapshot[]
+  goalSets              GoalSet[]
+  degree360Scores       Degree360Score[]
+
+  @@map("evaluation_periods")
+}
+
+model PeriodPhase {
+  id                 String           @id @default(uuid()) @db.Uuid
+  evaluationPeriodId String           @map("evaluation_period_id") @db.Uuid
+  phaseType          PhaseType        @map("phase_type")
+  startDate          DateTime         @map("start_date") @db.Date
+  endDate            DateTime         @map("end_date") @db.Date
+  createdAt          DateTime         @default(now()) @map("created_at")
+
+  evaluationPeriod EvaluationPeriod @relation(fields: [evaluationPeriodId], references: [id])
+
+  @@map("period_phases")
+}
+
+model GoalSet {
+  id                 String        @id @default(uuid()) @db.Uuid
+  employeeId         String        @map("employee_id") @db.Uuid
+  evaluationPeriodId String        @map("evaluation_period_id") @db.Uuid
+  membershipId       String        @map("membership_id") @db.Uuid
+  status             GoalSetStatus @default(DRAFT)
+  isMboTarget        Boolean       @default(true) @map("is_mbo_target")
+  isEvaluationExempt Boolean       @default(false) @map("is_evaluation_exempt")
+  targetMonths       Int           @default(12) @map("target_months") @db.SmallInt
+  isMidtermEntry     Boolean       @default(false) @map("is_midterm_entry")
+  isMidtermClosed    Boolean       @default(false) @map("is_midterm_closed")
+  isActive           Boolean       @default(true) @map("is_active")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  employee         Employee               @relation(fields: [employeeId], references: [id])
+  evaluationPeriod EvaluationPeriod       @relation(fields: [evaluationPeriodId], references: [id])
+  membership       OrganizationMembership @relation(fields: [membershipId], references: [id])
+  goals            Goal[]
+  finalEvaluation  FinalEvaluation?
+  approvalRequests ApprovalRequest[]
+
+  @@unique([employeeId, evaluationPeriodId, isActive])
+  @@map("goal_sets")
+}
+
+model Goal {
+  id             String   @id @default(uuid()) @db.Uuid
+  goalSetId      String   @map("goal_set_id") @db.Uuid
+  goalType       GoalType @map("goal_type")
+  version        Int      @default(1)
+  isCurrent      Boolean  @default(true) @map("is_current")
+  title          String
+  description    String   @db.Text
+  kpiPattern     String?  @map("kpi_pattern")
+  criteria12     String?  @map("criteria_1_2") @db.Text
+  criteria10     String?  @map("criteria_1_0") @db.Text
+  criteria08     String?  @map("criteria_0_8") @db.Text
+  weight         Decimal  @db.Decimal(5, 2)
+  visibility     String   @default("DEPARTMENT")
+  revisionReason String?  @map("revision_reason")
+  revisionNote   String?  @map("revision_note") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  goalSet        GoalSet         @relation(fields: [goalSetId], references: [id])
+  midtermReview  MidtermReview?
+  selfReview     SelfReview?
+  managerReview  ManagerReview?
+
+  @@map("goals")
+}
+
+model MidtermReview {
+  id                 String    @id @default(uuid()) @db.Uuid
+  goalId             String    @unique @map("goal_id") @db.Uuid
+  progress           String
+  comment            String?   @db.Text
+  managerComment     String?   @map("manager_comment") @db.Text
+  revisionRequested  Boolean   @default(false) @map("revision_requested")
+  revisionRequestNote String?  @map("revision_request_note") @db.Text
+  employeeSubmittedAt DateTime? @map("employee_submitted_at") @db.Timestamptz
+  managerSubmittedAt  DateTime? @map("manager_submitted_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  goal Goal @relation(fields: [goalId], references: [id])
+
+  @@map("midterm_reviews")
+}
+
+model SelfReview {
+  id          String    @id @default(uuid()) @db.Uuid
+  goalId      String    @unique @map("goal_id") @db.Uuid
+  score       Decimal   @db.Decimal(3, 2)
+  comment     String?   @db.Text
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  goal Goal @relation(fields: [goalId], references: [id])
+
+  @@map("self_reviews")
+}
+
+model ManagerReview {
+  id          String    @id @default(uuid()) @db.Uuid
+  goalId      String    @unique @map("goal_id") @db.Uuid
+  managerId   String    @map("manager_id") @db.Uuid
+  score       Decimal   @db.Decimal(3, 2)
+  comment     String?   @db.Text
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  goal Goal @relation(fields: [goalId], references: [id])
+
+  @@map("manager_reviews")
+}
+
+model FinalEvaluation {
+  id                          String    @id @default(uuid()) @db.Uuid
+  goalSetId                   String    @unique @map("goal_set_id") @db.Uuid
+  mboScore                    Decimal   @map("mbo_score") @db.Decimal(5, 2)
+  degree360AchievementBonus   Int       @default(0) @map("degree360_achievement_bonus") @db.SmallInt
+  degree360CredoBonus        Int       @default(0) @map("degree360_credo_bonus") @db.SmallInt
+  totalScore                  Decimal   @map("total_score") @db.Decimal(5, 2)
+  finalGrade                  String?   @map("final_grade") @db.Char(1)
+  adjustmentNote              String?   @map("adjustment_note") @db.Text
+  confirmedBy                 String?   @map("confirmed_by") @db.Uuid
+  confirmedAt                 DateTime? @map("confirmed_at") @db.Timestamptz
+  createdAt                   DateTime  @default(now()) @map("created_at")
+
+  goalSet GoalSet @relation(fields: [goalSetId], references: [id])
+
+  @@map("final_evaluations")
+}
+
+model Degree360Score {
+  id                 String   @id @default(uuid()) @db.Uuid
+  employeeId         String   @map("employee_id") @db.Uuid
+  evaluationPeriodId String   @map("evaluation_period_id") @db.Uuid
+  achievementScore   Decimal  @map("achievement_score") @db.Decimal(3, 2)
+  credoScore         Decimal  @map("credo_score") @db.Decimal(3, 2)
+  isTop20Achievement Boolean  @default(false) @map("is_top20_achievement")
+  source             String?
+  importedAt         DateTime @default(now()) @map("imported_at") @db.Timestamptz
+
+  employee         Employee         @relation(fields: [employeeId], references: [id])
+  evaluationPeriod EvaluationPeriod @relation(fields: [evaluationPeriodId], references: [id])
+
+  @@map("degree_360_scores")
+}
+
+model ApprovalRequest {
+  id            String              @id @default(uuid()) @db.Uuid
+  requestType   ApprovalRequestType @map("request_type")
+  goalSetId     String              @map("goal_set_id") @db.Uuid
+  requesterId   String              @map("requester_id") @db.Uuid
+  approverId    String              @map("approver_id") @db.Uuid
+  status        ApprovalStatus      @default(PENDING)
+  rejectionNote String?             @map("rejection_note") @db.Text
+  requestedAt   DateTime            @default(now()) @map("requested_at") @db.Timestamptz
+  resolvedAt    DateTime?           @map("resolved_at") @db.Timestamptz
+
+  goalSet   GoalSet  @relation(fields: [goalSetId], references: [id])
+  requester Employee @relation("Requester", fields: [requesterId], references: [id])
+  approver  Employee @relation("Approver", fields: [approverId], references: [id])
+
+  @@map("approval_requests")
+}
+
+model Notification {
+  id         String   @id @default(uuid()) @db.Uuid
+  employeeId String   @map("employee_id") @db.Uuid
+  type       String
+  message    String   @db.Text
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String   @map("actor_id") @db.Uuid
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id") @db.Uuid
+  beforeValue Json?    @map("before_value")
+  afterValue  Json?    @map("after_value")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  actor Employee @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}
