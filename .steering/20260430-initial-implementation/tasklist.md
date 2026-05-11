@@ -65,7 +65,7 @@
 - [x] `src/app/(auth)/login/page.tsx` 作成（メールOTP 2ステップログイン）
   - [x] Step 1: メールアドレス入力欄 + 「コードを送信」ボタン
   - [x] `signInWithOtp({ email, options: { shouldCreateUser: false } })` 呼び出し
-  - [x] Step 2: 「〇〇@〇〇 宛にコードを送りました」案内 + 6桁コード入力欄 + 「ログイン」ボタン
+  - [x] Step 2: 「〇〇@〇〇 宛にコードを送りました」案内 + 8桁コード入力欄 + 「ログイン」ボタン
   - [x] `verifyOtp({ email, token, type: 'email' })` 呼び出し
   - [x] ログイン成功 → `/dashboard` リダイレクト
   - [x] 未登録メールアドレス / コード誤り時のエラー表示（赤色 `#c0392b`）

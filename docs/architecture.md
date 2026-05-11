@@ -224,7 +224,7 @@ Vercel（自動デプロイ）
 ### 5.1 認証
 
 - **方式**: Supabase Auth によるメールOTP認証（パスワード不要・2ステップ式）
-  - Step 1: メールアドレスを入力 → Supabase が6桁の数字コードを送信（`signInWithOtp()`）
+  - Step 1: メールアドレスを入力 → Supabase が8桁の数字コードを送信（`signInWithOtp()`）
   - Step 2: 届いたコードを入力 → Supabase が検証してJWTを発行（`verifyOtp()`）
 - **OTP有効期限**: 60分（Supabase Auth 設定で変更可能）
 - **新規ユーザー自動作成**: 無効（`shouldCreateUser: false`）。事前にADMINが登録したメールアドレスのみログイン可

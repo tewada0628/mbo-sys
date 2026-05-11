@@ -49,7 +49,7 @@ function VerifyContent() {
             <CardDescription>
               <span className="font-semibold text-gray-900">{email}</span>
               <br />
-              に送信された6桁の認証コードを入力してください。
+              に送信された8桁の認証コードを入力してください。
             </CardDescription>
           </CardHeader>
           <CardContent>
