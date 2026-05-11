@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { verifyOtp } from '@/app/auth/actions';
+import { verifyOtp, resendOtp } from '@/app/auth/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,23 +12,41 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from '@/components/ui/input-otp';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound, CheckCircle2 } from 'lucide-react';
 
 function VerifyContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
   const [error, setError] = useState<string | null>(null);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [value, setValue] = useState('');
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
     setError(null);
+    setResendMessage(null);
     const result = await verifyOtp(formData);
     if (result?.error) {
       setError(result.error);
       setIsLoading(false);
     }
+  }
+
+  async function handleResend() {
+    if (!email) return;
+    setIsResending(true);
+    setError(null);
+    setResendMessage(null);
+
+    const result = await resendOtp(email);
+    if (result?.error) {
+      setError(result.error);
+    } else {
+      setResendMessage('認証コードを再送しました。');
+    }
+    setIsResending(false);
   }
 
   return (
@@ -84,6 +102,15 @@ function VerifyContent() {
                 </Alert>
               )}
 
+              {resendMessage && (
+                <Alert className="w-full border-green-200 bg-green-50 text-green-800">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="font-medium">{resendMessage}</AlertDescription>
+                  </div>
+                </Alert>
+              )}
+
               <Button
                 type="submit"
                 className="w-full h-11 text-base font-semibold bg-[#01AEBB] hover:bg-[#0198a4]"
@@ -105,7 +132,14 @@ function VerifyContent() {
         <p className="text-center text-sm text-gray-500">
           メールが届かない場合は、迷惑メールフォルダを確認するか、
           <br />
-          <button className="text-[#01AEBB] hover:underline font-medium">再送</button>
+          <button
+            onClick={handleResend}
+            disabled={isResending}
+            className="text-[#01AEBB] hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 mx-auto"
+          >
+            {isResending && <Loader2 className="h-3 w-3 animate-spin" />}
+            再送
+          </button>
           してください。
         </p>
       </div>
