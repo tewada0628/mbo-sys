@@ -50,15 +50,15 @@ async function main() {
   const employees = [
     { code: '00001', name: '和田', email: 't-wada@new-one.co.jp', role: Role.ADMIN },
     { code: '10001', name: 'システム管理者', email: 'admin@example.com', role: Role.ADMIN },
-    { code: '20001', name: '人事担当者', email: 'hr@example.com', role: Role.HR },
-    { code: '30001', name: '営業部長', email: 'manager@example.com', role: Role.MANAGER },
-    { code: '40001', name: '一般社員', email: 'member@example.com', role: Role.MEMBER },
+    { code: '20001', name: '人事担当者', email: 't-wada+hr@new-one.co.jp', role: Role.HR },
+    { code: '30001', name: '営業部長', email: 't-wada+manager@new-one.co.jp', role: Role.MANAGER },
+    { code: '40001', name: '一般社員', email: 't-wada+member@new-one.co.jp', role: Role.MEMBER },
   ];
 
   for (const emp of employees) {
     const createdEmp = await prisma.employee.upsert({
-      where: { email: emp.email },
-      update: { name: emp.name, employeeCode: emp.code },
+      where: { employeeCode: emp.code },
+      update: { name: emp.name, email: emp.email },
       create: {
         employeeCode: emp.code,
         name: emp.name,
