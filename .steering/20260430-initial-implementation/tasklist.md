@@ -79,13 +79,13 @@
 
 ## フェーズ4: 共通レイアウト（AppShell）
 
-- [ ] `src/lib/permissions.ts` 作成（RBAC 権限チェック関数）
-- [ ] `src/hooks/useCurrentUser.ts` 作成
-- [ ] `src/components/layout/AppShell.tsx` 作成
-- [ ] `src/components/layout/Sidebar.tsx` 作成（ロール別ナビゲーション）
-- [ ] `src/components/layout/Header.tsx` 作成（通知アイコン + ユーザーメニュー）
-- [ ] `src/app/layout.tsx` 作成（ルートレイアウト / フォント / グローバルCSS）
-- [ ] `src/app/(main)/layout.tsx` 作成（AppShell 埋め込み）
+- [x] `src/lib/permissions.ts` 作成（RBAC 権限チェック関数）
+- [x] `src/hooks/useCurrentUser.ts` 作成
+- [x] `src/components/layout/AppShell.tsx` 作成
+- [x] `src/components/layout/Sidebar.tsx` 作成（ロール別ナビゲーション）
+- [x] `src/components/layout/Header.tsx` 作成（通知アイコン + ユーザーメニュー）
+- [x] `src/app/layout.tsx` 作成（ルートレイアウト / フォント / グローバルCSS）
+- [x] `src/app/(main)/layout.tsx` 作成（AppShell 埋め込み）
 
 **完了条件**: ダッシュボードURLにアクセスするとサイドバー付きレイアウトが表示される
 
