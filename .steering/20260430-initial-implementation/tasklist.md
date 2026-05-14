@@ -95,11 +95,11 @@
 
 ### 5-1. ダッシュボード（S-02）
 
-- [ ] `src/app/(main)/dashboard/page.tsx` 作成
-  - [ ] 現在フェーズ表示
-  - [ ] 自分の目標サマリ（GoalCard）
-  - [ ] 対応事項リスト（承認待ち / 入力催促 / 修正依頼あり）
-- [ ] `src/components/goals/GoalCard.tsx` 作成
+- [x] `src/app/(main)/dashboard/page.tsx` 作成
+  - [x] 現在フェーズ表示
+  - [x] 自分の目標サマリ（GoalCard）
+  - [x] 対応事項リスト（承認待ち / 入力催促 / 修正依頼あり）
+- [x] `src/components/goals/GoalCard.tsx` 作成
 
 **完了条件**: ダッシュボードが表示され、自分の目標サマリと対応事項が正しく表示される
 
