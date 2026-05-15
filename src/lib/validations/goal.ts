@@ -10,7 +10,7 @@ export const goalSchema = z.object({
   criteria10: z.string().min(1, '達成基準(1.0)を入力してください'),
   criteria08: z.string().optional(),
   weight: z.number().int().min(1).max(100),
-  visibility: z.enum(['SELF_ONLY', 'DEPARTMENT', 'COMPANY']).default('DEPARTMENT'),
+  visibility: z.enum(['SELF_ONLY', 'DEPARTMENT', 'COMPANY']),
 });
 
 export const goalSetSchema = z.object({

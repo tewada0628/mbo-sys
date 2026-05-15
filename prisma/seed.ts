@@ -53,6 +53,7 @@ async function main() {
     { code: '20001', name: '人事担当者', email: 't-wada+hr@new-one.co.jp', role: Role.HR },
     { code: '30001', name: '営業部長', email: 't-wada+manager@new-one.co.jp', role: Role.MANAGER },
     { code: '40001', name: '一般社員', email: 't-wada+member@new-one.co.jp', role: Role.MEMBER },
+    { code: '50001', name: '契約社員(MBO対象外)', email: 't-wada+contract@new-one.co.jp', role: Role.MEMBER, type: EmployeeType.CONTRACT, grade: 2 },
   ];
 
   for (const emp of employees) {
@@ -75,10 +76,10 @@ async function main() {
         id: membershipId,
         employeeId: createdEmp.id,
         organizationSnapshotId: deptSales.id,
-        grade: emp.role === Role.ADMIN ? 6 : 3,
+        grade: emp.grade || (emp.role === Role.ADMIN ? 6 : 3),
         gradeType: 'STANDARD',
         position: emp.role === Role.ADMIN ? '管理者' : 'スタッフ',
-        employeeType: EmployeeType.REGULAR,
+        employeeType: emp.type || EmployeeType.REGULAR,
         roles: [emp.role],
         joinDate: new Date('2020-04-01'),
         validFrom: new Date('2025-10-01'),
