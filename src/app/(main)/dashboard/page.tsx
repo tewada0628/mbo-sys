@@ -142,7 +142,17 @@ export default async function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* 自分の目標サマリ */}
         <div>
-          <GoalCard goalSet={goalSet} />
+          <GoalCard 
+            goalSet={goalSet ? {
+              id: goalSet.id,
+              status: goalSet.status,
+              goals: goalSet.goals.map(g => ({
+                id: g.id,
+                title: g.title,
+                weight: Number(g.weight)
+              }))
+            } : null} 
+          />
         </div>
 
         {/* 対応事項リスト */}
