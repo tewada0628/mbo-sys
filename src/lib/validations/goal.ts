@@ -15,6 +15,8 @@ export const goalSchema = z.object({
 
 export const goalSetSchema = z.object({
   goals: z.array(goalSchema).length(3, '目標は3つ設定する必要があります'),
+  revisionReason: z.string().optional(),
+  revisionNote: z.string().optional(),
 }).refine((data) => {
   const totalWeight = data.goals.reduce((sum, g) => sum + g.weight, 0);
   return totalWeight === 100;

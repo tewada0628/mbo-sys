@@ -135,11 +135,11 @@
 
 ### 5-3. 目標修正申請（S-05）
 
-- [ ] `src/app/(main)/goals/[goalSetId]/revision/page.tsx` 作成
-  - [ ] 修正理由コード選択（6種類: KPI_CHANGE / STANDARD_DEVIATION / ROLE_CHANGE / MIDTERM_ENTRY / EARLY_CLOSURE / GRADE_PROMOTION）
-  - [ ] 変更内容入力
-- [ ] `src/app/api/goals/[goalSetId]/revision/route.ts` 作成
-  - [ ] 修正申請承認時: 旧版 `goals` レコードを `is_current = false` に更新し、新版を `is_current = true` で作成
+- [x] `src/app/(main)/goals/[goalSetId]/revision/page.tsx` 作成
+  - [x] 修正理由コード選択（6種類: KPI_CHANGE / STANDARD_DEVIATION / ROLE_CHANGE / MIDTERM_ENTRY / EARLY_CLOSURE / GRADE_PROMOTION）
+  - [x] 変更内容入力
+- [x] `src/app/api/goals/[goalSetId]/revision/route.ts` 作成
+  - [x] 修正申請承認時: 旧版 `goals` レコードを `is_current = false` に更新し、新版を `is_current = true` で作成
 
 **完了条件**: APPROVED状態の目標セットで修正申請ができる / 申請中も status が APPROVED のまま / 承認後に旧版がバージョン履歴に表示される
 

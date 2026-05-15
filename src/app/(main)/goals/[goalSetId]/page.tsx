@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GoalVisibilityBadge } from '@/components/goals/GoalVisibilityBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Clock } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ goalSetId: string }> }) {
@@ -40,6 +42,14 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
     redirect('/dashboard');
   }
 
+  const pendingRevision = await prisma.approvalRequest.findFirst({
+    where: {
+      goalSetId: goalSet.id,
+      requestType: 'GOAL_REVISION',
+      status: 'PENDING'
+    }
+  });
+
   const currentGoals = goalSet.goals.filter(g => g.isCurrent);
   const oldGoals = goalSet.goals.filter(g => !g.isCurrent);
   
@@ -71,7 +81,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
           <p className="text-muted-foreground">{goalSet.employee.name} の目標セット</p>
         </div>
         <div className="flex gap-2">
-          {isApproved && isOwner && (
+          {isApproved && isOwner && !pendingRevision && (
             <Button asChild variant="outline">
               <Link href={`/goals/${goalSet.id}/revision`}>
                 目標修正申請
@@ -80,6 +90,17 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
           )}
         </div>
       </div>
+
+      {pendingRevision && (
+        <Alert className="bg-amber-50 border-amber-200">
+          <Clock className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800">修正申請中</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            現在、目標の修正申請が承認待ちです。承認されるまで変更内容は有効化されません。
+            申請中の新しい目標内容は「バージョン履歴」タブから確認できます。
+          </AlertDescription>
+        </Alert>
+      )}
 
       <ApprovalStepIndicator status={goalSet.status} />
 
