@@ -23,6 +23,7 @@ interface GoalFormProps {
   initialData?: GoalFormValues;
   goalSetId?: string;
   isMboExempt?: boolean;
+  isRevision?: boolean;
 }
 
 const defaultGoals = [
@@ -61,7 +62,7 @@ const defaultGoals = [
   },
 ];
 
-export function GoalForm({ initialData, goalSetId, isMboExempt }: GoalFormProps) {
+export function GoalForm({ initialData, goalSetId, isMboExempt, isRevision }: GoalFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -84,8 +85,8 @@ export function GoalForm({ initialData, goalSetId, isMboExempt }: GoalFormProps)
       setIsSubmitting(true);
       setErrorMsg('');
       
-      const endpoint = goalSetId ? `/api/goals/${goalSetId}` : `/api/goals`;
-      const method = goalSetId ? 'PATCH' : 'POST';
+      const endpoint = isRevision ? `/api/goals/${goalSetId}/revision` : (goalSetId ? `/api/goals/${goalSetId}` : `/api/goals`);
+      const method = isRevision ? 'POST' : (goalSetId ? 'PATCH' : 'POST');
 
       const res = await fetch(endpoint, {
         method,
@@ -100,7 +101,7 @@ export function GoalForm({ initialData, goalSetId, isMboExempt }: GoalFormProps)
       const resData = await res.json();
       const currentGoalSetId = goalSetId || resData.id;
 
-      if (submitType === 'submit' && !isMboExempt) {
+      if (submitType === 'submit' && !isMboExempt && !isRevision) {
         const submitRes = await fetch(`/api/goals/${currentGoalSetId}/submit`, {
           method: 'POST',
         });
@@ -137,27 +138,82 @@ export function GoalForm({ initialData, goalSetId, isMboExempt }: GoalFormProps)
             </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isSubmitting}
-              onClick={form.handleSubmit((d) => onSubmit(d, 'save'))}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              下書き保存
-            </Button>
-            {!isMboExempt && (
+            {!isRevision && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={form.handleSubmit((d) => onSubmit(d, 'save'))}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                下書き保存
+              </Button>
+            )}
+            {(!isMboExempt || isRevision) && (
               <Button
                 type="button"
                 disabled={isSubmitting || totalWeight !== 100}
                 onClick={form.handleSubmit((d) => onSubmit(d, 'submit'))}
               >
                 <Send className="w-4 h-4 mr-2" />
-                承認申請
+                {isRevision ? '修正申請' : '承認申請'}
               </Button>
             )}
           </div>
         </div>
+
+        {isRevision && (
+          <Card className="border-warning bg-warning/5">
+            <CardHeader>
+              <CardTitle className="text-lg">修正申請の理由</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="revisionReason"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>修正理由 *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="理由を選択してください" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="KPI_CHANGE">KPI・目標数値の変更</SelectItem>
+                        <SelectItem value="STANDARD_DEVIATION">前提条件の大きな変化</SelectItem>
+                        <SelectItem value="ROLE_CHANGE">役割・異動による変更</SelectItem>
+                        <SelectItem value="MIDTERM_ENTRY">期中入社</SelectItem>
+                        <SelectItem value="EARLY_CLOSURE">早期達成・目標クローズ</SelectItem>
+                        <SelectItem value="GRADE_PROMOTION">期中昇格</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="revisionNote"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>変更内容・理由の詳細 *</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="どの目標をどのように変更するのか、その理由を詳しく記載してください" 
+                        className="min-h-[100px] bg-white" 
+                        {...field} 
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-6">
           {fields.map((field, index) => {
