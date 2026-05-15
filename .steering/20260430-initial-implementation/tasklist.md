@@ -107,27 +107,27 @@
 
 ### 5-2. 目標設定（S-03）+ 目標詳細・編集（S-04）
 
-- [ ] `src/components/goals/GoalForm.tsx` 作成（React Hook Form + Zod）
-  - [ ] KPI連動目標2件 + 組織貢献目標1件の3件構成
-  - [ ] ウェイト合計100%バリデーション
-  - [ ] 達成基準（1.2/1.0/0.8水準）入力
-  - [ ] KPIパターン選択（5種類: KPI_DECOMPOSITION / LEADING_INDICATOR / ROLE_IN_GOAL / UPPER_GOAL / TEAM_GROWTH）
-  - [ ] 公開範囲（visibility）選択（SELF_ONLY / DEPARTMENT / COMPANY）
-  - [ ] MBO対象外（等級1〜2 / CONTRACT / ASSISTANT）は保存時に status を SAVED に設定し承認申請ボタンを非表示
-- [ ] `src/components/goals/ApprovalStepIndicator.tsx` 作成（4段階インジケーター）
-- [ ] `src/components/goals/GoalVersionHistory.tsx` 作成
-- [ ] `src/components/goals/GoalVisibilityBadge.tsx` 作成
-- [ ] `src/components/goals/KpiPatternGuide.tsx` 作成（5パターンの説明表示）
-- [ ] `src/app/(main)/goals/new/page.tsx` 作成
-- [ ] `src/app/(main)/goals/[goalSetId]/page.tsx` 作成
-  - [ ] 目標詳細タブ（目標詳細 / バージョン履歴 / ステータス履歴）
-  - [ ] APPROVED後の編集ボタン非表示（修正申請ボタンに切り替え）
-  - [ ] 最終承認後差し戻しボタン（DEPT_MANAGER以上のみ表示）
-- [ ] `src/app/api/goals/route.ts` 作成（GET / POST）
-- [ ] `src/app/api/goals/[goalSetId]/route.ts` 作成（GET / PATCH）
-  - [ ] DRAFT / REJECTED / MEETING_REJECTED のみ PATCH 可。それ以外は 409
-- [ ] `src/app/api/goals/[goalSetId]/submit/route.ts` 作成（承認申請: DRAFT → PENDING_MANAGER）
-- [ ] `src/app/api/goals/[goalSetId]/meeting-reject/route.ts` 作成（最終承認後差し戻し）
+- [x] `src/components/goals/GoalForm.tsx` 作成（React Hook Form + Zod）
+  - [x] KPI連動目標2件 + 組織貢献目標1件の3件構成
+  - [x] ウェイト合計100%バリデーション
+  - [x] 達成基準（1.2/1.0/0.8水準）入力
+  - [x] KPIパターン選択（5種類: KPI_DECOMPOSITION / LEADING_INDICATOR / ROLE_IN_GOAL / UPPER_GOAL / TEAM_GROWTH）
+  - [x] 公開範囲（visibility）選択（SELF_ONLY / DEPARTMENT / COMPANY）
+  - [x] MBO対象外（等級1〜2 / CONTRACT / ASSISTANT）は保存時に status を SAVED に設定し承認申請ボタンを非表示
+- [x] `src/components/goals/ApprovalStepIndicator.tsx` 作成（4段階インジケーター）
+- [x] `src/components/goals/GoalVersionHistory.tsx` 作成
+- [x] `src/components/goals/GoalVisibilityBadge.tsx` 作成
+- [x] `src/components/goals/KpiPatternGuide.tsx` 作成（5パターンの説明表示）
+- [x] `src/app/(main)/goals/new/page.tsx` 作成
+- [x] `src/app/(main)/goals/[goalSetId]/page.tsx` 作成
+  - [x] 目標詳細タブ（目標詳細 / バージョン履歴 / ステータス履歴）
+  - [x] APPROVED後の編集ボタン非表示（修正申請ボタンに切り替え）
+  - [x] 最終承認後差し戻しボタン（DEPT_MANAGER以上のみ表示）
+- [x] `src/app/api/goals/route.ts` 作成（GET / POST）
+- [x] `src/app/api/goals/[goalSetId]/route.ts` 作成（GET / PATCH）
+  - [x] DRAFT / REJECTED / MEETING_REJECTED のみ PATCH 可。それ以外は 409
+- [x] `src/app/api/goals/[goalSetId]/submit/route.ts` 作成（承認申請: DRAFT → PENDING_MANAGER）
+- [x] `src/app/api/goals/[goalSetId]/meeting-reject/route.ts` 作成（最終承認後差し戻し）
 
 **完了条件**: 目標セットを作成・保存でき、承認申請ができる / APPROVED後の編集が 409 になる / MBO対象外は申請なしで SAVED になる
 
