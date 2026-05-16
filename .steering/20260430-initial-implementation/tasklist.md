@@ -194,16 +194,16 @@
 
 ### 5-7. 評価調整・確定（S-08）
 
-- [ ] `src/lib/score.ts` 作成（MBOスコア計算 / 360度スコア合算ロジック）
-- [ ] `src/lib/phases.ts` 作成（フェーズ判定ロジック）
-  - [ ] フェーズ値定義: `GOAL_SETTING` / `MIDTERM` / `SELF_REVIEW` / `MANAGER_REVIEW`
-  - [ ] 一般ロールのフェーズ外操作で 403、HR/ADMIN は全フェーズ操作可能
-- [ ] `src/components/admin/EvaluationAdjustmentTable.tsx` 作成
-- [ ] `src/app/(main)/admin/review-adjustment/page.tsx` 作成
-  - [ ] 総合評価（S/A/B/C/D）選択・確定 UI
-- [ ] `src/app/api/admin/evaluations/route.ts` 作成
-- [ ] `src/app/api/admin/evaluations/[goalSetId]/route.ts` 作成（スコア調整・総合評価確定）
-- [ ] `src/app/api/admin/evaluations/[goalSetId]/score-preview/route.ts` 作成
+- [x] `src/lib/score.ts` 作成（MBOスコア計算 / 360度スコア合算ロジック）
+- [x] `src/lib/phases.ts` 作成（フェーズ判定ロジック）
+  - [x] フェーズ値定義: `GOAL_SETTING` / `MIDTERM` / `SELF_REVIEW` / `MANAGER_REVIEW`
+  - [x] 一般ロールのフェーズ外操作で 403、HR/ADMIN は全フェーズ操作可能
+- [x] `src/components/admin/EvaluationAdjustmentTable.tsx` 作成
+- [x] `src/app/(main)/admin/review-adjustment/page.tsx` 作成
+  - [x] 総合評価（S/A/B/C/D）選択・確定 UI
+- [x] `src/app/api/admin/evaluations/route.ts` 作成
+- [x] `src/app/api/admin/evaluations/[goalSetId]/route.ts` 作成（スコア調整・総合評価確定）
+- [x] `src/app/api/admin/evaluations/[goalSetId]/score-preview/route.ts` 作成
 
 **完了条件**: 全社員の評価スコアを確認・調整・確定できる / 総合評価（S/A/B/C/D）が `final_evaluations` に保存される
 
