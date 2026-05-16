@@ -115,6 +115,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
           status: ApprovalStatus.PENDING,
         }
       });
+
+      // 3. Update goal set status to reflect the revision progress
+      await tx.goalSet.update({
+        where: { id: goalSet.id },
+        data: { status: 'PENDING_MANAGER' }
+      });
     });
 
     return NextResponse.json({ success: true, message: 'Revision requested successfully' });

@@ -9,7 +9,8 @@ import {
   CheckSquare, 
   Settings, 
   BarChart, 
-  ShieldAlert
+  ShieldAlert,
+  Calendar
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { hasAdminPrivilege, isManager } from '@/lib/permissions';
@@ -50,6 +51,12 @@ const navItems: NavItem[] = [
     label: '評価調整・確定',
     href: '/admin/review-adjustment',
     icon: <BarChart className="h-5 w-5" />,
+    visible: (roles) => hasAdminPrivilege(roles as any[]),
+  },
+  {
+    label: 'フェーズ管理(テスト用)',
+    href: '/admin/phases',
+    icon: <Calendar className="h-5 w-5" />,
     visible: (roles) => hasAdminPrivilege(roles as any[]),
   },
   {

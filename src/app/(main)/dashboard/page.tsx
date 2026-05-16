@@ -23,8 +23,8 @@ export default async function DashboardPage() {
     return <div>従業員情報が見つかりません。</div>;
   }
 
-  // 1. Get Current Evaluation Period & Phase
-  const activePeriod = await prisma.evaluationPeriod.findFirst({
+  // 1. Get ALL Active Evaluation Periods & Phases
+  const activePeriods = await prisma.evaluationPeriod.findMany({
     where: { status: 'ACTIVE' },
     include: {
       phases: {
@@ -34,8 +34,9 @@ export default async function DashboardPage() {
   });
 
   const now = new Date();
-  const currentPhase = activePeriod?.phases.find(
-    (p) => p.startDate <= now && p.endDate >= now
+  const currentPhases = activePeriods.flatMap(period => 
+    period.phases.filter(p => p.startDate <= now && p.endDate >= now)
+      .map(p => ({ ...p, periodName: period.name }))
   );
 
   const phaseNames: Record<string, string> = {
@@ -47,23 +48,91 @@ export default async function DashboardPage() {
     ADJUSTMENT: '評価調整・確定',
   };
 
-  // 2. Get User's Goal Set for the active period
-  const goalSet = activePeriod ? await prisma.goalSet.findFirst({
+  // 2. Get User's Goal Sets for all active periods
+  const goalSets = await prisma.goalSet.findMany({
     where: { 
       employeeId: employee.id,
-      evaluationPeriodId: activePeriod.id,
+      evaluationPeriodId: { in: activePeriods.map(p => p.id) },
       isActive: true,
     },
     include: {
       goals: {
         where: { isCurrent: true },
-        orderBy: { createdAt: 'asc' }
-      }
+        orderBy: { createdAt: 'asc' },
+        include: { midtermReview: true },
+      },
+      evaluationPeriod: true,
     }
-  }) : null;
-
+  });
+  
   // 3. Action Items Logic
   const actionItems: { title: string; desc: string; link: string; icon: any; color: string }[] = [];
+  
+  let primaryGoalSetFlags = {
+    hasRejectedRevision: false,
+    isRevisionPending: false
+  };
+
+  // Check for rejections/actions for each goal set
+  for (let i = 0; i < goalSets.length; i++) {
+    const gs = goalSets[i];
+    const lastRejectedRevision = await prisma.approvalRequest.findFirst({
+      where: {
+        goalSetId: gs.id,
+        status: 'REJECTED',
+        requestType: 'GOAL_REVISION'
+      },
+      orderBy: { resolvedAt: 'desc' }
+    });
+
+    const lastApprovedRevision = await prisma.approvalRequest.findFirst({
+      where: {
+        goalSetId: gs.id,
+        status: 'APPROVED',
+        requestType: 'GOAL_REVISION'
+      },
+      orderBy: { resolvedAt: 'desc' }
+    });
+
+    const pendingRequest = await prisma.approvalRequest.findFirst({
+      where: {
+        goalSetId: gs.id,
+        status: 'PENDING'
+      },
+      orderBy: { requestedAt: 'desc' }
+    });
+
+    const hasRejectedRevision = !!(
+      lastRejectedRevision && 
+      (!lastApprovedRevision || (lastRejectedRevision.resolvedAt && lastApprovedRevision.resolvedAt && lastRejectedRevision.resolvedAt > lastApprovedRevision.resolvedAt)) &&
+      (!pendingRequest || (lastRejectedRevision.resolvedAt && pendingRequest.requestedAt && lastRejectedRevision.resolvedAt > pendingRequest.requestedAt))
+    );
+
+    const isRevisionPending = !!(pendingRequest && pendingRequest.requestType === 'GOAL_REVISION');
+
+    // For the primary (first) goal set, store flags for the GoalCard
+    if (i === 0) {
+      primaryGoalSetFlags = { hasRejectedRevision, isRevisionPending };
+    }
+
+    if (hasRejectedRevision) {
+      actionItems.push({
+        title: `[${gs.evaluationPeriod.name}] 目標修正の差し戻し確認`,
+        desc: '目標修正申請が差し戻されました。内容を確認して再申請してください。',
+        link: `/goals/${gs.id}`,
+        icon: AlertCircle,
+        color: 'text-red-600 bg-red-50 border-red-200'
+      });
+    } else if (gs.status === 'REJECTED' || gs.status === 'MEETING_REJECTED') {
+      actionItems.push({
+        title: `[${gs.evaluationPeriod.name}] 目標設定の差し戻し確認`,
+        desc: '目標設定が差し戻されました。理由を確認して再申請してください。',
+        link: `/goals/${gs.id}`,
+        icon: AlertCircle,
+        color: 'text-red-600 bg-red-50 border-red-200'
+      });
+    }
+  }
 
   // 3-1. Pending Approvals (Manager/Approver role)
   const pendingApprovals = await prisma.approvalRequest.count({
@@ -83,15 +152,17 @@ export default async function DashboardPage() {
     });
   }
 
-  // 3-2. User action items based on Phase
-  if (currentPhase) {
+  // 3-2. User action items based on Phase(s)
+  for (const phase of currentPhases) {
+    const periodGoalSet = goalSets.find(gs => gs.evaluationPeriodId === phase.evaluationPeriodId);
+    
     // Goal Setting Phase
-    if (currentPhase.phaseType === 'GOAL_SETTING') {
-      if (!goalSet || goalSet.status === 'DRAFT' || goalSet.status === 'REJECTED' || goalSet.status === 'MEETING_REJECTED') {
+    if (phase.phaseType === 'GOAL_SETTING') {
+      if (!periodGoalSet || periodGoalSet.status === 'DRAFT' || periodGoalSet.status === 'SAVED') {
         actionItems.push({
-          title: '目標設定の入力',
+          title: `[${phase.periodName}] 目標設定の入力`,
           desc: '今期の目標を設定して申請してください',
-          link: goalSet ? `/goals/${goalSet.id}` : '/goals/new',
+          link: periodGoalSet ? `/goals/${periodGoalSet.id}` : '/goals/new',
           icon: AlertCircle,
           color: 'text-red-600 bg-red-50 border-red-200'
         });
@@ -99,23 +170,35 @@ export default async function DashboardPage() {
     }
     
     // Midterm Phase (Check revision request)
-    if (currentPhase.phaseType === 'MIDTERM') {
-      // Just an example check, normally we'd check if midterm review is submitted or revision is requested
-      actionItems.push({
-        title: '中間振り返りの実施',
-        desc: '中間振り返りを入力してください',
-        link: goalSet ? `/goals/${goalSet.id}` : '/',
-        icon: Calendar,
-        color: 'text-blue-600 bg-blue-50 border-blue-200'
-      });
+    if (phase.phaseType === 'MIDTERM') {
+      const hasMidtermRevisionRequest = periodGoalSet?.goals.some(g => g.midtermReview?.revisionRequested);
+      const isMidtermSubmitted = periodGoalSet?.goals.every(g => g.midtermReview?.employeeSubmittedAt);
+      
+      if (hasMidtermRevisionRequest) {
+        actionItems.push({
+          title: `[${phase.periodName}] 中間修正の依頼あり`,
+          desc: '上長から目標の修正依頼が届いています。内容を確認して修正してください',
+          link: `/goals/${periodGoalSet?.id}`,
+          icon: AlertCircle,
+          color: 'text-red-600 bg-red-50 border-red-200'
+        });
+      } else if (!isMidtermSubmitted) {
+        actionItems.push({
+          title: `[${phase.periodName}] 中間振り返りの実施`,
+          desc: '中間振り返りを入力してください',
+          link: periodGoalSet ? `/goals/${periodGoalSet.id}` : '/',
+          icon: Calendar,
+          color: 'text-blue-600 bg-blue-50 border-blue-200'
+        });
+      }
     }
 
     // Self Review Phase
-    if (currentPhase.phaseType === 'SELF_REVIEW') {
+    if (phase.phaseType === 'SELF_REVIEW') {
       actionItems.push({
-        title: '自己評価の入力',
+        title: `[${phase.periodName}] 自己評価の入力`,
         desc: '期末の自己評価を入力してください',
-        link: goalSet ? `/goals/${goalSet.id}/self-review` : '/',
+        link: periodGoalSet ? `/goals/${periodGoalSet.id}/self-review` : '/',
         icon: CheckSquare,
         color: 'text-[#01AEBB] bg-[#01AEBB]/10 border-[#01AEBB]/20'
       });
@@ -128,31 +211,39 @@ export default async function DashboardPage() {
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">ダッシュボード</h2>
         
         {/* 現在フェーズ表示 */}
-        {activePeriod && currentPhase && (
-          <div className="flex items-center gap-2 rounded-full border bg-white px-4 py-1.5 shadow-sm">
-            <span className="text-sm font-medium text-gray-500">{activePeriod.name}</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-sm font-bold text-[#01AEBB]">
-              現在: {phaseNames[currentPhase.phaseType] || currentPhase.phaseType}
-            </span>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {currentPhases.map((phase, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-full border bg-white px-4 py-1.5 shadow-sm">
+              <span className="text-sm font-medium text-gray-500">{phase.periodName}</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-sm font-bold text-[#01AEBB]">
+                現在: {phaseNames[phase.phaseType] || phase.phaseType}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* 自分の目標サマリ */}
         <div>
-          <GoalCard 
-            goalSet={goalSet ? {
-              id: goalSet.id,
-              status: goalSet.status,
-              goals: goalSet.goals.map(g => ({
-                id: g.id,
-                title: g.title,
-                weight: Number(g.weight)
-              }))
-            } : null} 
-          />
+          {goalSets.length > 0 ? (
+            <GoalCard 
+              goalSet={{
+                id: goalSets[0].id,
+                status: goalSets[0].status,
+                goals: goalSets[0].goals.map(g => ({
+                  id: g.id,
+                  title: g.title,
+                  weight: Number(g.weight)
+                }))
+              }} 
+              hasRejectedRevision={primaryGoalSetFlags.hasRejectedRevision}
+              isRevisionPending={primaryGoalSetFlags.isRevisionPending}
+            />
+          ) : (
+            <GoalCard goalSet={null} hasRejectedRevision={false} isRevisionPending={false} />
+          )}
         </div>
 
         {/* 対応事項リスト */}

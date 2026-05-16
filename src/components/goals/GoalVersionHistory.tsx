@@ -3,6 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
+const REVISION_REASON_LABELS: Record<string, string> = {
+  KPI_CHANGE: '全社／部門KPIの変更',
+  STANDARD_DEVIATION: '目標設定の前提条件の変動による見直し',
+  ROLE_CHANGE: '異動等による役割変更',
+  MIDTERM_ENTRY: '期中入社',
+  EARLY_CLOSURE: '早期クローズ',
+  GRADE_PROMOTION: '期中昇格によるグレード変更',
+};
+
 interface GoalVersionHistoryProps {
   goals: Goal[];
 }
@@ -36,7 +45,7 @@ export function GoalVersionHistory({ goals }: GoalVersionHistoryProps) {
             </div>
             {goal.revisionReason && (
               <div>
-                <span className="font-semibold">修正理由:</span> {goal.revisionReason}
+                <span className="font-semibold">修正理由:</span> {REVISION_REASON_LABELS[goal.revisionReason] || goal.revisionReason}
               </div>
             )}
             {goal.revisionNote && (

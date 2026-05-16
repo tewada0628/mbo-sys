@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 interface ApprovalStepIndicatorProps {
   status: GoalSetStatus;
+  isRevisionPending?: boolean;
 }
 
 const steps = [
@@ -13,14 +14,14 @@ const steps = [
   { id: 'approved', label: '承認完了', pendingStatus: 'APPROVED' },
 ];
 
-export function ApprovalStepIndicator({ status }: ApprovalStepIndicatorProps) {
+export function ApprovalStepIndicator({ status, isRevisionPending }: ApprovalStepIndicatorProps) {
   // Return null for statuses that are not in the approval flow yet
   if (status === 'DRAFT' || status === 'SAVED' || status === 'REJECTED' || status === 'MEETING_REJECTED') {
     return null;
   }
 
   const currentStepIndex = 
-    status === 'APPROVED' ? 4 :
+    (status === 'APPROVED' && !isRevisionPending) ? 4 :
     status === 'PENDING_EXECUTIVE' ? 2 :
     status === 'PENDING_DIVISION' ? 1 : 0;
 
@@ -34,8 +35,8 @@ export function ApprovalStepIndicator({ status }: ApprovalStepIndicatorProps) {
         />
         
         {steps.map((step, index) => {
-          const isCompleted = index < currentStepIndex || status === 'APPROVED';
-          const isCurrent = index === currentStepIndex && status !== 'APPROVED';
+          const isCompleted = index < currentStepIndex || (status === 'APPROVED' && !isRevisionPending);
+          const isCurrent = index === currentStepIndex && (status !== 'APPROVED' || isRevisionPending);
           
           return (
             <div key={step.id} className="relative z-10 flex flex-col items-center gap-2 bg-background px-2">

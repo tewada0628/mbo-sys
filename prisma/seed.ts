@@ -57,7 +57,7 @@ async function main() {
   ];
 
   for (const emp of employees) {
-    const createdEmp = await prisma.employee.upsert({
+    await prisma.employee.upsert({
       where: { employeeCode: emp.code },
       update: { name: emp.name, email: emp.email },
       create: {
@@ -66,6 +66,18 @@ async function main() {
         email: emp.email,
       },
     });
+  }
+
+  // Fetch created employees to use their IDs for relationships
+  const dbEmployees = await prisma.employee.findMany();
+  const getEmpId = (code: string) => dbEmployees.find(e => e.employeeCode === code)?.id;
+
+  const managerId = getEmpId('30001'); // 営業部長
+  const divisionManagerId = getEmpId('30001'); // 兼任
+  const executiveId = getEmpId('20001'); // 人事担当者
+
+  for (const emp of employees) {
+    const createdEmp = dbEmployees.find(e => e.employeeCode === emp.code)!;
 
     // Membership (Using numeric codes to ensure valid UUID format)
     const membershipId = `00000000-0000-0000-0000-${emp.code.padStart(12, '0')}`;
@@ -81,6 +93,9 @@ async function main() {
         position: emp.role === Role.ADMIN ? '管理者' : 'スタッフ',
         employeeType: emp.type || EmployeeType.REGULAR,
         roles: [emp.role],
+        managerId: emp.role === Role.MEMBER ? managerId : null,
+        divisionManagerId: emp.role === Role.MEMBER ? divisionManagerId : null,
+        executiveId: emp.role === Role.MEMBER ? executiveId : null,
         joinDate: new Date('2020-04-01'),
         validFrom: new Date('2025-10-01'),
       },
