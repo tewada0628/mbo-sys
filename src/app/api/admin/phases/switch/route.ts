@@ -14,10 +14,24 @@ export async function POST(req: Request) {
 
     const employee = await prisma.employee.findUnique({
       where: { email: user.email },
+      include: {
+        memberships: {
+          where: {
+            validFrom: { lte: new Date() },
+            OR: [
+              { validTo: null },
+              { validTo: { gt: new Date() } }
+            ]
+          }
+        }
+      }
     });
 
+    // Collect all roles
+    const roles = employee?.memberships.flatMap(m => m.roles) || [];
+
     // Check if user has ADMIN role
-    if (!employee || !employee.roles.includes('ADMIN')) {
+    if (!employee || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
