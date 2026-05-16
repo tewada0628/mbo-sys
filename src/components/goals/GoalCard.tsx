@@ -14,9 +14,11 @@ interface GoalCardProps {
       weight: number;
     }[];
   } | null;
+  hasRejectedRevision?: boolean;
+  isRevisionPending?: boolean;
 }
 
-export function GoalCard({ goalSet }: GoalCardProps) {
+export function GoalCard({ goalSet, hasRejectedRevision, isRevisionPending }: GoalCardProps) {
   if (!goalSet) {
     return (
       <Card>
@@ -43,6 +45,14 @@ export function GoalCard({ goalSet }: GoalCardProps) {
   }
 
   const getStatusBadge = (status: GoalSetStatus) => {
+    if (isRevisionPending) {
+      return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200"><Clock className="mr-1 h-3 w-3" /> 目標修正申請中</Badge>;
+    }
+
+    if (status === 'APPROVED' && hasRejectedRevision) {
+      return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200"><AlertCircle className="mr-1 h-3 w-3" /> 差し戻し（修正申請）</Badge>;
+    }
+
     switch (status) {
       case 'DRAFT':
         return <Badge variant="outline" className="bg-gray-50 text-gray-600">下書き</Badge>;

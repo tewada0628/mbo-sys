@@ -68,64 +68,67 @@ enum PhaseType {
 }
 
 model Employee {
-  id            String    @id @default(uuid()) @db.Uuid
-  employeeCode  String    @unique @map("employee_code")
-  name          String
-  email         String    @unique
-  isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  employeeCode String   @unique @map("employee_code")
+  name         String
+  email        String   @unique
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   memberships       OrganizationMembership[]
   goalSets          GoalSet[]
   degree360Scores   Degree360Score[]
-  approvalRequests  ApprovalRequest[] @relation("Requester")
-  approvalResponses ApprovalRequest[] @relation("Approver")
+  approvalRequests  ApprovalRequest[]        @relation("Requester")
+  approvalResponses ApprovalRequest[]        @relation("Approver")
   notifications     Notification[]
   auditLogs         AuditLog[]
 
   // For manager relations in memberships
   managedMemberships         OrganizationMembership[] @relation("Manager")
   divisionManagedMemberships OrganizationMembership[] @relation("DivisionManager")
+  executiveMemberships       OrganizationMembership[] @relation("Executive")
 
   @@map("employees")
 }
 
 model OrganizationSnapshot {
-  id                 String           @id @default(uuid()) @db.Uuid
-  evaluationPeriodId String           @map("evaluation_period_id") @db.Uuid
+  id                 String   @id @default(uuid()) @db.Uuid
+  evaluationPeriodId String   @map("evaluation_period_id") @db.Uuid
   name               String
-  parentId           String?          @map("parent_id") @db.Uuid
-  createdAt          DateTime         @default(now()) @map("created_at")
+  parentId           String?  @map("parent_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
 
-  evaluationPeriod EvaluationPeriod @relation(fields: [evaluationPeriodId], references: [id])
-  parent           OrganizationSnapshot? @relation("OrgTree", fields: [parentId], references: [id])
-  children         OrganizationSnapshot[] @relation("OrgTree")
+  evaluationPeriod EvaluationPeriod         @relation(fields: [evaluationPeriodId], references: [id])
+  parent           OrganizationSnapshot?    @relation("OrgTree", fields: [parentId], references: [id])
+  children         OrganizationSnapshot[]   @relation("OrgTree")
   memberships      OrganizationMembership[]
 
   @@map("organization_snapshots")
 }
 
 model OrganizationMembership {
-  id                     String    @id @default(uuid()) @db.Uuid
-  employeeId             String    @map("employee_id") @db.Uuid
-  organizationSnapshotId String    @map("organization_snapshot_id") @db.Uuid
-  grade                  Int       @db.SmallInt
-  gradeType              String    @map("grade_type")
+  id                     String       @id @default(uuid()) @db.Uuid
+  employeeId             String       @map("employee_id") @db.Uuid
+  organizationSnapshotId String       @map("organization_snapshot_id") @db.Uuid
+  grade                  Int          @db.SmallInt
+  gradeType              String       @map("grade_type")
   position               String
   employeeType           EmployeeType @map("employee_type")
   roles                  Role[]
-  managerId              String?   @map("manager_id") @db.Uuid
-  divisionManagerId      String?   @map("division_manager_id") @db.Uuid
-  joinDate               DateTime  @map("join_date") @db.Date
-  validFrom              DateTime  @map("valid_from") @db.Date
-  validTo                DateTime? @map("valid_to") @db.Date
-  createdAt              DateTime  @default(now()) @map("created_at")
+  managerId              String?      @map("manager_id") @db.Uuid
+  divisionManagerId      String?      @map("division_manager_id") @db.Uuid
+  executiveId            String?      @map("executive_id") @db.Uuid
+  joinDate               DateTime     @map("join_date") @db.Date
+  validFrom              DateTime     @map("valid_from") @db.Date
+  validTo                DateTime?    @map("valid_to") @db.Date
+  createdAt              DateTime     @default(now()) @map("created_at")
 
   employee             Employee             @relation(fields: [employeeId], references: [id])
   organizationSnapshot OrganizationSnapshot @relation(fields: [organizationSnapshotId], references: [id])
   manager              Employee?            @relation("Manager", fields: [managerId], references: [id])
   divisionManager      Employee?            @relation("DivisionManager", fields: [divisionManagerId], references: [id])
+  executive            Employee?            @relation("Executive", fields: [executiveId], references: [id])
   goalSets             GoalSet[]
 
   @@map("organization_memberships")
@@ -148,12 +151,12 @@ model EvaluationPeriod {
 }
 
 model PeriodPhase {
-  id                 String           @id @default(uuid()) @db.Uuid
-  evaluationPeriodId String           @map("evaluation_period_id") @db.Uuid
-  phaseType          PhaseType        @map("phase_type")
-  startDate          DateTime         @map("start_date") @db.Date
-  endDate            DateTime         @map("end_date") @db.Date
-  createdAt          DateTime         @default(now()) @map("created_at")
+  id                 String    @id @default(uuid()) @db.Uuid
+  evaluationPeriodId String    @map("evaluation_period_id") @db.Uuid
+  phaseType          PhaseType @map("phase_type")
+  startDate          DateTime  @map("start_date") @db.Date
+  endDate            DateTime  @map("end_date") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   evaluationPeriod EvaluationPeriod @relation(fields: [evaluationPeriodId], references: [id])
 
@@ -205,25 +208,25 @@ model Goal {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  goalSet        GoalSet         @relation(fields: [goalSetId], references: [id])
-  midtermReview  MidtermReview?
-  selfReview     SelfReview?
-  managerReview  ManagerReview?
+  goalSet       GoalSet        @relation(fields: [goalSetId], references: [id])
+  midtermReview MidtermReview?
+  selfReview    SelfReview?
+  managerReview ManagerReview?
 
   @@map("goals")
 }
 
 model MidtermReview {
-  id                 String    @id @default(uuid()) @db.Uuid
-  goalId             String    @unique @map("goal_id") @db.Uuid
-  progress           String
-  comment            String?   @db.Text
-  managerComment     String?   @map("manager_comment") @db.Text
-  revisionRequested  Boolean   @default(false) @map("revision_requested")
-  revisionRequestNote String?  @map("revision_request_note") @db.Text
+  id                  String    @id @default(uuid()) @db.Uuid
+  goalId              String    @unique @map("goal_id") @db.Uuid
+  progress            String
+  comment             String?   @db.Text
+  managerComment      String?   @map("manager_comment") @db.Text
+  revisionRequested   Boolean   @default(false) @map("revision_requested")
+  revisionRequestNote String?   @map("revision_request_note") @db.Text
   employeeSubmittedAt DateTime? @map("employee_submitted_at") @db.Timestamptz
   managerSubmittedAt  DateTime? @map("manager_submitted_at") @db.Timestamptz
-  createdAt          DateTime  @default(now()) @map("created_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
 
   goal Goal @relation(fields: [goalId], references: [id])
 
@@ -258,17 +261,17 @@ model ManagerReview {
 }
 
 model FinalEvaluation {
-  id                          String    @id @default(uuid()) @db.Uuid
-  goalSetId                   String    @unique @map("goal_set_id") @db.Uuid
-  mboScore                    Decimal   @map("mbo_score") @db.Decimal(5, 2)
-  degree360AchievementBonus   Int       @default(0) @map("degree360_achievement_bonus") @db.SmallInt
-  degree360CredoBonus        Int       @default(0) @map("degree360_credo_bonus") @db.SmallInt
-  totalScore                  Decimal   @map("total_score") @db.Decimal(5, 2)
-  finalGrade                  String?   @map("final_grade") @db.Char(1)
-  adjustmentNote              String?   @map("adjustment_note") @db.Text
-  confirmedBy                 String?   @map("confirmed_by") @db.Uuid
-  confirmedAt                 DateTime? @map("confirmed_at") @db.Timestamptz
-  createdAt                   DateTime  @default(now()) @map("created_at")
+  id                        String    @id @default(uuid()) @db.Uuid
+  goalSetId                 String    @unique @map("goal_set_id") @db.Uuid
+  mboScore                  Decimal   @map("mbo_score") @db.Decimal(5, 2)
+  degree360AchievementBonus Int       @default(0) @map("degree360_achievement_bonus") @db.SmallInt
+  degree360CredoBonus       Int       @default(0) @map("degree360_credo_bonus") @db.SmallInt
+  totalScore                Decimal   @map("total_score") @db.Decimal(5, 2)
+  finalGrade                String?   @map("final_grade") @db.Char(1)
+  adjustmentNote            String?   @map("adjustment_note") @db.Text
+  confirmedBy               String?   @map("confirmed_by") @db.Uuid
+  confirmedAt               DateTime? @map("confirmed_at") @db.Timestamptz
+  createdAt                 DateTime  @default(now()) @map("created_at")
 
   goalSet GoalSet @relation(fields: [goalSetId], references: [id])
 
