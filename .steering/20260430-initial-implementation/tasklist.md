@@ -224,18 +224,18 @@
 
 システム運用に必須のため P0 完了後に実装する。
 
-- [ ] `src/components/admin/UserManagementTable.tsx` 作成
-- [ ] `src/components/admin/OrganizationTree.tsx` 作成
-- [ ] `src/components/admin/PeriodForm.tsx` 作成
-- [ ] `src/app/(main)/admin/users/page.tsx` 作成
-- [ ] `src/app/(main)/admin/organizations/page.tsx` 作成
-- [ ] `src/app/(main)/admin/periods/page.tsx` 作成
-- [ ] `src/app/api/admin/users/route.ts` 作成（GET / POST）
-- [ ] `src/app/api/admin/users/[userId]/route.ts` 作成（PATCH）
-- [ ] `src/app/api/admin/organizations/route.ts` 作成（GET / POST）
-- [ ] `src/app/api/admin/organizations/[orgId]/route.ts` 作成（PATCH）
-- [ ] `src/app/api/admin/periods/route.ts` 作成（GET / POST）
-- [ ] `src/app/api/admin/periods/[periodId]/phases/route.ts` 作成（PATCH）
+- [x] `src/components/admin/UserManagementTable.tsx` 作成
+- [x] `src/components/admin/OrganizationTree.tsx` 作成
+- [x] `src/components/admin/PeriodForm.tsx` 作成
+- [x] `src/app/(main)/admin/users/page.tsx` 作成
+- [x] `src/app/(main)/admin/organizations/page.tsx` 作成
+- [x] `src/app/(main)/admin/periods/page.tsx` 作成
+- [x] `src/app/api/admin/users/route.ts` 作成（GET / POST）
+- [x] `src/app/api/admin/users/[userId]/route.ts` 作成（PATCH）
+- [x] `src/app/api/admin/organizations/route.ts` 作成（GET / POST）
+- [x] `src/app/api/admin/organizations/[orgId]/route.ts` 作成（PATCH）
+- [x] `src/app/api/admin/periods/route.ts` 作成（GET / POST）
+- [x] `src/app/api/admin/periods/[periodId]/phases/route.ts` 作成（PATCH）
 
 **完了条件**: 社員・組織・評価期の CRUD が HR/ADMIN ロールで操作できる
 
