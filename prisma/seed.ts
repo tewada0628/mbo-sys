@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient, Role, EmployeeType, PeriodStatus, PhaseType, GoalType } from '@prisma/client';
+import { PrismaClient, Role, EmployeeType, PeriodStatus, PhaseType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 

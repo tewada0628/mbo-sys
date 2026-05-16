@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ApprovalActionModal } from '@/components/approvals/ApprovalActionModal';
-import { ApprovalRequest, Employee } from '@prisma/client';
+import { ApprovalRequest } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 
 interface GoalApprovalActionsProps {
@@ -46,8 +46,9 @@ export function GoalApprovalActions({ request, requesterName }: GoalApprovalActi
       closeModal();
       router.refresh();
       router.push('/approvals');
-    } catch (err: any) {
-      alert(`エラー: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '操作に失敗しました。';
+      alert(`エラー: ${message}`);
     } finally {
       setIsSubmitting(false);
     }

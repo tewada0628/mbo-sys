@@ -5,6 +5,7 @@ import { GoalForm } from '@/components/goals/GoalForm';
 import { ApprovalStepIndicator } from '@/components/goals/ApprovalStepIndicator';
 import { GoalVersionHistory } from '@/components/goals/GoalVersionHistory';
 import { GoalApprovalActions } from '@/components/goals/GoalApprovalActions';
+import { MeetingRejectAction } from '@/components/goals/MeetingRejectAction';
 import { MidtermReviewForm } from '@/components/reviews/MidtermReviewForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GoalVisibilityBadge } from '@/components/goals/GoalVisibilityBadge';
@@ -15,7 +16,6 @@ import { Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { RevisionReason } from '@/types';
 export const revalidate = 0;
 
 const REVISION_REASON_LABELS: Record<string, string> = {
@@ -45,7 +45,18 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
   }
 
   const currentEmployee = await prisma.employee.findUnique({
-    where: { email: user.email }
+    where: { email: user.email },
+    include: {
+      memberships: {
+        where: {
+          validFrom: { lte: new Date() },
+          OR: [
+            { validTo: null },
+            { validTo: { gt: new Date() } },
+          ],
+        },
+      },
+    },
   });
 
   const goalSet = await prisma.goalSet.findUnique({
@@ -119,6 +130,16 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
   // Simplification for RBAC for now: assume we can edit if it's not approved and we are the owner
   const canEdit = isOwner && ['DRAFT', 'REJECTED', 'MEETING_REJECTED'].includes(goalSet.status);
   const isApproved = goalSet.status === 'APPROVED' || !!pendingRevision;
+  const canMeetingReject = Boolean(
+    currentEmployee &&
+    goalSet.status === 'APPROVED' &&
+    !pendingRevision &&
+    currentEmployee.memberships.some((membership) => (
+      membership.roles.includes('ADMIN') ||
+      membership.roles.includes('HR') ||
+      membership.position === 'DEPT_MANAGER'
+    )),
+  );
 
   // Format initialData for GoalForm
   const initialData = {
@@ -177,6 +198,9 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
                 目標修正申請
               </Link>
             </Button>
+          )}
+          {canMeetingReject && (
+            <MeetingRejectAction goalSetId={goalSet.id} employeeName={goalSet.employee.name} />
           )}
         </div>
       </div>
@@ -396,7 +420,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
           <TabsContent value="midterm" className="mt-6">
             <MidtermReviewForm 
               goalSetId={goalSet.id} 
-              goals={serializedGoals as any} 
+              goals={serializedGoals} 
               isManager={isManager} 
               isEmployee={isOwner} 
             />

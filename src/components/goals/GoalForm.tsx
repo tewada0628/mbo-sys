@@ -112,8 +112,8 @@ export function GoalForm({ initialData, goalSetId, isMboExempt, isRevision }: Go
 
       router.push(`/goals/${currentGoalSetId}`);
       router.refresh();
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : '保存に失敗しました');
     } finally {
       setIsSubmitting(false);
     }

@@ -150,7 +150,7 @@
 ### 承認ステップ
 
 **英語**: Approval Step  
-**定義**: 4段階承認フローのどの段階にあるかを示す番号（1〜4）。1=上長、2=事業部長、3=経営に対応する。`approval_requests.step` カラムに格納される。
+**定義**: 4段階承認フローのどの段階にあるかを示す概念。実装では段階ごとに `approval_requests` レコードを生成し、現在の承認者は `approver_id`、目標設定承認の現在段階は `goal_sets.status` で表す。
 
 | ステップ値 | 承認者 | 遷移後のステータス |
 | -------- | ---- | ------------- |
@@ -158,7 +158,7 @@
 | 2 | 事業部長（`DEPT_MANAGER`以上） | `PENDING_EXECUTIVE` |
 | 3 | 経営（`EXECUTIVE` / HR / ADMIN） | `APPROVED` |
 
-**コード上の表記**: `step`（`approval_requests.step` カラム）  
+**コード上の表記**: `goal_sets.status` と `approval_requests.approver_id` の組み合わせ  
 **関連用語**: 承認フロー、経営
 
 ---
@@ -599,12 +599,9 @@ APPROVED
 
 | ステータス値 | 日本語ラベル | 説明 |
 | ---------- | --------- | -- |
-| `PENDING` | 承認待ち | 現在の承認ステップで承認を待っている状態 |
+| `PENDING` | 承認待ち | 当該ステップの承認待ち状態。目標修正申請もこの値を使用する |
 | `APPROVED` | 承認済み | 当該ステップの承認が完了した状態 |
 | `REJECTED` | 差し戻し | 当該ステップで差し戻された状態 |
-| `REVISION_PENDING` | 修正申請中 | 修正申請が提出され、承認を待っている状態 |
-| `REVISION_APPROVED` | 修正承認済み | 修正申請が承認された状態 |
-| `REVISION_REJECTED` | 修正差し戻し | 修正申請が差し戻された状態 |
 
 ### approval_requests.request_type（申請種別）
 

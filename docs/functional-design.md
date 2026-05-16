@@ -60,7 +60,7 @@ graph TD
 
 | レイヤー | 技術 | 役割 |
 | ------- | -- | -- |
-| フロントエンド | Next.js 14 (App Router) + TypeScript | ページレンダリング・ルーティング |
+| フロントエンド | Next.js 16 (App Router) + TypeScript | ページレンダリング・ルーティング |
 | UIコンポーネント | shadcn/ui + Tailwind CSS | デザインシステム・アクセシビリティ |
 | バックエンド | Next.js Route Handlers | REST API実装 |
 | ORM | Prisma | 型安全なDB操作・マイグレーション |
@@ -646,7 +646,7 @@ stateDiagram-v2
 | `self_reviews` | `score BETWEEN 0.0 AND 2.0` CHECK制約 |
 | `manager_reviews` | `score BETWEEN 0.0 AND 2.0` CHECK制約 |
 | `organization_memberships` | `grade BETWEEN 1 AND 8` CHECK制約 |
-| `approval_requests` | `rejection_note` は `status IN ('REJECTED', 'REVISION_REJECTED', 'MEETING_REJECTION')` 時に必須（API層でバリデーション） |
+| `approval_requests` | `rejection_note` は `status = 'REJECTED'` または `request_type = 'MEETING_REJECTION'` 時に必須（API層でバリデーション） |
 | `goals` | `kpi_pattern` は `goal_type IN ('KPI_1', 'KPI_2')` の場合にNOT NULL（CHECK制約で担保） |
 
 ### 5.4 approval_requests.status 遷移と生成タイミング
@@ -678,11 +678,11 @@ flowchart TD
 
 | ステップ | 初期 status | 承認後 status | 差し戻し後 status |
 | ------ | ---------- | ----------- | -------------- |
-| 上長 | `REVISION_PENDING_MANAGER` | `REVISION_APPROVED`（次ステップへ） | `REVISION_REJECTED`（社員に通知） |
-| 事業部長 | `REVISION_PENDING_DIVISION` | `REVISION_APPROVED`（次ステップへ） | `REVISION_REJECTED` |
-| 経営 | `REVISION_PENDING_EXECUTIVE` | `REVISION_APPROVED`（goals.is_current 更新） | `REVISION_REJECTED` |
+| 上長 | `PENDING` | `APPROVED`（次ステップへ） | `REJECTED`（社員に通知） |
+| 事業部長 | `PENDING` | `APPROVED`（次ステップへ） | `REJECTED` |
+| 経営 | `PENDING` | `APPROVED`（goals.is_current 更新） | `REJECTED` |
 
-> 全ステップ `REVISION_APPROVED` になった時点で、新バージョンの goals を `is_current=TRUE`、旧バージョンを `is_current=FALSE` に更新する。`goal_sets.status` は `APPROVED` のまま維持される。
+> `request_type = GOAL_REVISION` の全ステップが `APPROVED` になった時点で、新バージョンの goals を `is_current=TRUE`、旧バージョンを `is_current=FALSE` に更新する。`goal_sets.status` は `APPROVED` のまま維持される。
 
 #### MEETING_REJECTION（最終承認後差し戻し）— 1レコード生成
 
@@ -690,7 +690,7 @@ flowchart TD
 | ------- | - |
 | `request_type` | `MEETING_REJECTION` |
 | `requester_id` | 差し戻しを実行した部長（DEPT_MANAGER以上 / HR / ADMIN） |
-| `approver_id` | 対象社員（通知先） |
+| `approver_id` | 差し戻し実行者 |
 | `rejection_note` | 必須。差し戻しコメント |
 | 効果 | `goal_sets.status` を `MEETING_REJECTED` に更新。社員・直属上長に即時通知 |
 
@@ -794,7 +794,7 @@ components/
 ### 7.1 認証・認可
 
 - **認証方式**: Supabase Auth（メールOTP認証・パスワード不要）
-- **セッション管理**: JWT トークン（Supabase 発行）。Next.js middleware でトークン検証
+- **セッション管理**: JWT トークン（Supabase 発行）。Next.js 16 の `proxy.ts` でトークン検証
 - **権限チェック**: `lib/permissions.ts` に集約。Route Handler の先頭で実行
 - **フェーズ制御**: 各 API は `period_phases` テーブルの現在フェーズを確認し、フェーズ外の操作は `403 Forbidden` を返す（例外: `is_midterm_entry` / `is_midterm_closed` フラグが立っている場合）
 
@@ -957,15 +957,15 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 
 | トリガーイベント | 通知先 | notifications.type | 通知タイミング |
 | --------- | --- | ------------------ | ------- |
-| 社員が承認申請提出（PENDING_MANAGER） | 直属上長（1次評価者） | `APPROVAL_REQUESTED` | 即時 |
-| 上長承認（PENDING_DIVISION へ遷移） | 事業部長（2次評価者） | `APPROVAL_REQUESTED` | 即時 |
-| 事業部長承認（PENDING_EXECUTIVE へ遷移） | 経営担当者（HR/ADMIN） | `APPROVAL_REQUESTED` | 即時 |
-| 経営承認（APPROVED） | 申請社員 | `GOAL_APPROVED` | 即時 |
-| いずれかの段階で差し戻し（REJECTED） | 申請社員 | `GOAL_REJECTED` | 即時 |
-| 上長が修正依頼フラグ設定（revision_requested=TRUE） | 対象社員 | `REVISION_REQUESTED` | 即時 |
+| 社員が承認申請提出（PENDING_MANAGER） | 直属上長（1次評価者） | `APPROVAL_REQUEST` | 即時 |
+| 上長承認（PENDING_DIVISION へ遷移） | 事業部長（2次評価者）・申請社員 | `APPROVAL_REQUEST` / `APPROVAL_PROGRESSED` | 即時 |
+| 事業部長承認（PENDING_EXECUTIVE へ遷移） | 経営担当者（HR/ADMIN）・申請社員 | `APPROVAL_REQUEST` / `APPROVAL_PROGRESSED` | 即時 |
+| 経営承認（APPROVED） | 申請社員 | `APPROVAL_COMPLETED` | 即時 |
+| いずれかの段階で差し戻し（REJECTED） | 申請社員 | `APPROVAL_REJECTED` | 即時 |
+| 上長が修正依頼フラグ設定（revision_requested=TRUE） | 対象社員 | `MIDTERM_REVISION_REQUESTED` | 即時 |
 | 最終承認後差し戻し（MEETING_REJECTED） | 申請社員・直属上長 | `MEETING_REJECTED` | 即時 |
-| 目標修正申請 差し戻し（REVISION_REJECTED） | 申請社員 | `REVISION_REJECTED` | 即時 |
-| 目標修正申請 全ステップ承認完了（REVISION_APPROVED） | 申請社員 | `REVISION_APPROVED` | 即時 |
+| 目標修正申請 差し戻し（GOAL_REVISION / REJECTED） | 申請社員 | `APPROVAL_REJECTED` | 即時 |
+| 目標修正申請 全ステップ承認完了（GOAL_REVISION / APPROVED） | 申請社員 | `APPROVAL_COMPLETED` | 即時 |
 | フェーズ切替（GOAL_SETTING 開始） | 全対象社員（is_mbo_target=TRUE） | `PHASE_STARTED` | フェーズ開始日の朝 |
 | フェーズ切替（MIDTERM_REVIEW 開始） | 目標設定済みの全社員 | `PHASE_STARTED` | フェーズ開始日の朝 |
 | フェーズ切替（SELF_REVIEW 開始） | 等級3以上の正社員 | `PHASE_STARTED` | フェーズ開始日の朝 |
@@ -975,12 +975,11 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 
 | type 値 | 説明 |
 | ----- | -- |
-| `APPROVAL_REQUESTED` | 承認待ち（各承認ステップで承認者に送信） |
-| `GOAL_APPROVED` | 目標が最終承認（APPROVED）された |
-| `GOAL_REJECTED` | 目標が差し戻し（REJECTED）された |
-| `REVISION_REQUESTED` | 上長から目標の修正依頼が届いた |
-| `REVISION_APPROVED` | 目標修正申請が全ステップ承認された |
-| `REVISION_REJECTED` | 目標修正申請が差し戻された |
+| `APPROVAL_REQUEST` | 承認待ち（各承認ステップで承認者に送信） |
+| `APPROVAL_PROGRESSED` | 承認が次のステップへ進んだ |
+| `APPROVAL_COMPLETED` | 目標設定または目標修正が最終承認された |
+| `APPROVAL_REJECTED` | 目標設定または目標修正が差し戻された |
+| `MIDTERM_REVISION_REQUESTED` | 上長から中間振り返りで目標の修正依頼が届いた |
 | `MEETING_REJECTED` | 最終承認後に目標が差し戻された（難易度調整） |
 | `PHASE_STARTED` | 新しい評価フェーズが開始された |
 | `APPROVAL_REMINDER` | 承認待ちのリマインダー（日次バッチ） |
@@ -989,12 +988,11 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 
 | type 値 | アプリ内通知 | メール通知 |
 | ----- | ------- | ------- |
-| `APPROVAL_REQUESTED` | ○ | ○ |
-| `GOAL_APPROVED` | ○ | ○ |
-| `GOAL_REJECTED` | ○ | ○ |
-| `REVISION_REQUESTED` | ○ | ○ |
-| `REVISION_APPROVED` | ○ | ○ |
-| `REVISION_REJECTED` | ○ | ○ |
+| `APPROVAL_REQUEST` | ○ | ○ |
+| `APPROVAL_PROGRESSED` | ○ | ○ |
+| `APPROVAL_COMPLETED` | ○ | ○ |
+| `APPROVAL_REJECTED` | ○ | ○ |
+| `MIDTERM_REVISION_REQUESTED` | ○ | ○ |
 | `MEETING_REJECTED` | ○ | ○ |
 | `PHASE_STARTED` | ○ | ○ |
 | `APPROVAL_REMINDER` | ○ | ○ |

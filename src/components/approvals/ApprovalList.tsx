@@ -86,8 +86,9 @@ export function ApprovalList() {
       
       await mutate();
       closeActionModal();
-    } catch (err: any) {
-      alert(`エラー: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '操作に失敗しました。';
+      alert(`エラー: ${message}`);
     } finally {
       setIsSubmitting(false);
     }

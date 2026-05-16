@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 
+type MidtermReviewPayload = {
+  goalId: string;
+  progress?: string;
+  comment?: string;
+  managerComment?: string;
+  revisionRequested?: boolean;
+  revisionRequestNote?: string;
+};
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
     const { goalSetId } = await params;
@@ -77,7 +86,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
 
       // If manager requests revision, update GoalSet status or trigger notification
       if (isManager && action === 'submit_manager') {
-        const hasRevisionRequest = reviews.some((r: any) => r.revisionRequested);
+        const hasRevisionRequest = (reviews as MidtermReviewPayload[]).some((r) => r.revisionRequested);
         if (hasRevisionRequest) {
           await tx.notification.create({
             data: {

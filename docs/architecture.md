@@ -28,12 +28,13 @@
 
 | レイヤー | 技術 | バージョン | 採用理由 |
 | ------- | -- | ------- | ------ |
-| フロントエンド | Next.js (App Router) | 14.x | SSR/RSC対応・Vercelとの親和性 |
+| フロントエンド | Next.js (App Router) | 16.x | SSR/RSC対応・Vercelとの親和性 |
+| React | React | 19.x | RSC/Client Components の実行基盤 |
 | 言語 | TypeScript | 5.x | 型安全性・開発効率 |
 | UIコンポーネント | shadcn/ui | CLI管理 | アクセシビリティ対応済み・Tailwind統合。CLI でコンポーネントをソースコードとしてコピーする方式のため npm バージョン管理の対象外。CLI 自体のバージョンは `devDependencies` で固定する |
-| CSSフレームワーク | Tailwind CSS | 3.x | ユーティリティファースト・デザイン統一 |
+| CSSフレームワーク | Tailwind CSS | 4.x | ユーティリティファースト・デザイン統一 |
 | バックエンド | Next.js Route Handlers | - | Next.jsと同一リポジトリで管理・フルスタック構成 |
-| ORM | Prisma | 5.x | TypeScript型安全・マイグレーション管理 |
+| ORM | Prisma | 7.x | TypeScript型安全・マイグレーション管理 |
 | データベース | PostgreSQL (Supabase) | 15.x | Supabase PgBouncer内蔵でコネクションプール管理 |
 | 認証 | Supabase Auth | - | メールOTP認証（パスワード不要）。JWT発行・セッション管理 |
 | ホスティング | Vercel | - | CI/CD・プレビュー環境・Edge Networkが組み込み済み |
@@ -50,7 +51,7 @@
 | ページコンポーネント | React Server Components (RSC) をデフォルトとし、インタラクションが必要な箇所のみ `'use client'` を付与 |
 | データフェッチ | RSC での `fetch` / Prisma 直接呼び出しを基本とする。クライアントサイドの再フェッチは **SWR** を使用 |
 | ルーティング | App Router のファイルシステムベースルーティング。動的ルートは `[goalSetId]` 等のセグメントで表現 |
-| 認証ガード | `middleware.ts` でJWT検証。未認証時は `/login` にリダイレクト |
+| 認証ガード | Next.js 16 の `proxy.ts` でJWT検証。未認証時は `/login` にリダイレクト |
 | レイアウト | ルートレイアウト（`app/layout.tsx`）にAppShellを配置。認証済みページは `(main)` グループ配下に配置 |
 
 #### UIデザインシステム

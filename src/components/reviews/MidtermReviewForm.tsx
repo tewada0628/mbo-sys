@@ -11,7 +11,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Goal, MidtermReview } from '@prisma/client';
 
-type GoalWithReview = Goal & { midtermReview: MidtermReview | null };
+type GoalWithReview = Omit<Goal, 'weight'> & {
+  weight: number;
+  midtermReview: MidtermReview | null;
+};
+
+type ReviewDraft = {
+  goalId: string;
+  progress: string;
+  comment: string;
+  managerComment: string;
+  revisionRequested: boolean;
+  revisionRequestNote: string;
+};
 
 interface MidtermReviewFormProps {
   goalSetId: string;
@@ -41,7 +53,7 @@ export function MidtermReviewForm({ goalSetId, goals, isManager, isEmployee, onS
   const canEditAsEmployee = isEmployee && !isSubmittedByEmployee;
   const canEditAsManager = isManager && !isSubmittedByManager;
 
-  const updateReview = (goalId: string, field: string, value: any) => {
+  const updateReview = <K extends keyof ReviewDraft>(goalId: string, field: K, value: ReviewDraft[K]) => {
     setReviews((prev) => 
       prev.map((r) => (r.goalId === goalId ? { ...r, [field]: value } : r))
     );
@@ -64,8 +76,9 @@ export function MidtermReviewForm({ goalSetId, goals, isManager, isEmployee, onS
       alert(action === 'save' ? '下書き保存しました。' : '提出しました。');
       router.refresh();
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      alert(`エラー: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '保存に失敗しました。';
+      alert(`エラー: ${message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +154,7 @@ export function MidtermReviewForm({ goalSetId, goals, isManager, isEmployee, onS
                           id={`revision-${goal.id}`}
                           checked={review.revisionRequested}
                           disabled={!canEditAsManager}
-                          onCheckedChange={(checked) => updateReview(goal.id, 'revisionRequested', checked)}
+                          onCheckedChange={(checked) => updateReview(goal.id, 'revisionRequested', checked === true)}
                         />
                         <Label htmlFor={`revision-${goal.id}`} className="font-semibold cursor-pointer">
                           この目標について修正を依頼する
