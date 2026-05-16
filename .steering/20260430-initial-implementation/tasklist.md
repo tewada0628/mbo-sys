@@ -178,15 +178,15 @@
 
 ### 5-6. 自己評価（S-06）・上長評価（S-07）
 
-- [ ] `src/components/reviews/SelfReviewForm.tsx` 作成（スコア選択 + コメント）
-- [ ] `src/components/reviews/ManagerReviewForm.tsx` 作成
-- [ ] `src/components/reviews/BiasWarningBanner.tsx` 作成（認知バイアス5症状の静的ガイダンスバナー）
-- [ ] `src/components/reviews/ScoreDisplay.tsx` 作成
-- [ ] `src/app/(main)/goals/[goalSetId]/self-review/page.tsx` 作成
-- [ ] `src/app/(main)/goals/[goalSetId]/manager-review/page.tsx` 作成
-  - [ ] 自己評価未提出の場合は入力フォームをロック
-- [ ] `src/app/api/goals/[goalSetId]/self-review/route.ts` 作成
-- [ ] `src/app/api/goals/[goalSetId]/manager-review/route.ts` 作成
+- [x] `src/components/reviews/SelfReviewForm.tsx` 作成（スコア選択 + コメント）
+- [x] `src/components/reviews/ManagerReviewForm.tsx` 作成
+- [x] `src/components/reviews/BiasWarningBanner.tsx` 作成（認知バイアス5症状の静的ガイダンスバナー）
+- [x] `src/components/reviews/ScoreDisplay.tsx` 作成
+- [x] `src/app/(main)/goals/[goalSetId]/self-review/page.tsx` 作成
+- [x] `src/app/(main)/goals/[goalSetId]/manager-review/page.tsx` 作成
+  - [x] 自己評価未提出の場合は入力フォームをロック
+- [x] `src/app/api/goals/[goalSetId]/self-review/route.ts` 作成
+- [x] `src/app/api/goals/[goalSetId]/manager-review/route.ts` 作成
 
 **完了条件**: 自己評価提出後に上長評価が入力可能になる / バイアス警告バナーが常時表示される
 

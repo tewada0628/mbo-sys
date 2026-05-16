@@ -963,6 +963,7 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 | 経営承認（APPROVED） | 申請社員 | `APPROVAL_COMPLETED` | 即時 |
 | いずれかの段階で差し戻し（REJECTED） | 申請社員 | `APPROVAL_REJECTED` | 即時 |
 | 上長が修正依頼フラグ設定（revision_requested=TRUE） | 対象社員 | `MIDTERM_REVISION_REQUESTED` | 即時 |
+| 自己評価提出完了 | 直属上長（1次評価者） | `SELF_REVIEW_SUBMITTED` | 即時 |
 | 最終承認後差し戻し（MEETING_REJECTED） | 申請社員・直属上長 | `MEETING_REJECTED` | 即時 |
 | 目標修正申請 差し戻し（GOAL_REVISION / REJECTED） | 申請社員 | `APPROVAL_REJECTED` | 即時 |
 | 目標修正申請 全ステップ承認完了（GOAL_REVISION / APPROVED） | 申請社員 | `APPROVAL_COMPLETED` | 即時 |
@@ -980,6 +981,7 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 | `APPROVAL_COMPLETED` | 目標設定または目標修正が最終承認された |
 | `APPROVAL_REJECTED` | 目標設定または目標修正が差し戻された |
 | `MIDTERM_REVISION_REQUESTED` | 上長から中間振り返りで目標の修正依頼が届いた |
+| `SELF_REVIEW_SUBMITTED` | 部下の自己評価が提出された |
 | `MEETING_REJECTED` | 最終承認後に目標が差し戻された（難易度調整） |
 | `PHASE_STARTED` | 新しい評価フェーズが開始された |
 | `APPROVAL_REMINDER` | 承認待ちのリマインダー（日次バッチ） |
@@ -993,6 +995,7 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 | `APPROVAL_COMPLETED` | ○ | ○ |
 | `APPROVAL_REJECTED` | ○ | ○ |
 | `MIDTERM_REVISION_REQUESTED` | ○ | ○ |
+| `SELF_REVIEW_SUBMITTED` | ○ | ○ |
 | `MEETING_REJECTED` | ○ | ○ |
 | `PHASE_STARTED` | ○ | ○ |
 | `APPROVAL_REMINDER` | ○ | ○ |

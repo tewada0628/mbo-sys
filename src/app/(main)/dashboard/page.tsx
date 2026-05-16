@@ -59,7 +59,11 @@ export default async function DashboardPage() {
       goals: {
         where: { isCurrent: true },
         orderBy: { createdAt: 'asc' },
-        include: { midtermReview: true },
+        include: {
+          midtermReview: true,
+          selfReview: true,
+          managerReview: true,
+        },
       },
       evaluationPeriod: true,
     }
@@ -152,7 +156,44 @@ export default async function DashboardPage() {
     });
   }
 
-  // 3-2. User action items based on Phase(s)
+  // 3-2. Subordinate self reviews that are ready for manager review
+  const subordinateGoalSetsReadyForManagerReview = await prisma.goalSet.findMany({
+    where: {
+      evaluationPeriodId: { in: activePeriods.map(p => p.id) },
+      isActive: true,
+      status: 'APPROVED',
+      membership: {
+        managerId: employee.id,
+      },
+    },
+    include: {
+      goals: {
+        where: { isCurrent: true },
+        include: {
+          selfReview: true,
+          managerReview: true,
+        },
+      },
+    },
+  });
+
+  const pendingManagerReviewCount = subordinateGoalSetsReadyForManagerReview.filter((goalSet) => {
+    const hasAllSelfReviews = goalSet.goals.every((goal) => goal.selfReview?.submittedAt);
+    const hasAllManagerReviews = goalSet.goals.every((goal) => goal.managerReview?.submittedAt);
+    return hasAllSelfReviews && !hasAllManagerReviews;
+  }).length;
+
+  if (pendingManagerReviewCount > 0) {
+    actionItems.push({
+      title: '部下の自己評価が提出されました',
+      desc: `${pendingManagerReviewCount}件の上長評価を入力できます`,
+      link: '/goals',
+      icon: CheckSquare,
+      color: 'text-purple-700 bg-purple-50 border-purple-200'
+    });
+  }
+
+  // 3-3. User action items based on Phase(s)
   for (const phase of currentPhases) {
     const periodGoalSet = goalSets.find(gs => gs.evaluationPeriodId === phase.evaluationPeriodId);
     
@@ -195,14 +236,19 @@ export default async function DashboardPage() {
 
     // Self Review Phase
     if (phase.phaseType === 'SELF_REVIEW') {
-      actionItems.push({
-        title: `[${phase.periodName}] 自己評価の入力`,
-        desc: '期末の自己評価を入力してください',
-        link: periodGoalSet ? `/goals/${periodGoalSet.id}/self-review` : '/',
-        icon: CheckSquare,
-        color: 'text-[#01AEBB] bg-[#01AEBB]/10 border-[#01AEBB]/20'
-      });
+      const isSelfReviewSubmitted = periodGoalSet?.goals.every(g => g.selfReview?.submittedAt);
+
+      if (periodGoalSet && !isSelfReviewSubmitted) {
+        actionItems.push({
+          title: `[${phase.periodName}] 自己評価の入力`,
+          desc: '期末の自己評価を入力してください',
+          link: `/goals/${periodGoalSet.id}/self-review`,
+          icon: CheckSquare,
+          color: 'text-[#01AEBB] bg-[#01AEBB]/10 border-[#01AEBB]/20'
+        });
+      }
     }
+
   }
 
   return (

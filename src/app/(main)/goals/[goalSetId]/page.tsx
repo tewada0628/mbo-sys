@@ -12,7 +12,7 @@ import { GoalVisibilityBadge } from '@/components/goals/GoalVisibilityBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Clock, AlertCircle } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -35,8 +35,15 @@ const KPI_PATTERN_LABELS: Record<string, string> = {
   TEAM_GROWTH: 'チーム・他者の成長支援',
 };
 
-export default async function GoalDetailPage({ params }: { params: Promise<{ goalSetId: string }> }) {
+export default async function GoalDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ goalSetId: string }>;
+  searchParams?: Promise<{ selfReviewSubmitted?: string }>;
+}) {
   const { goalSetId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -199,11 +206,35 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ goa
               </Link>
             </Button>
           )}
+          {goalSet.status === 'APPROVED' && isOwner && (
+            <Button asChild variant="outline">
+              <Link href={`/goals/${goalSet.id}/self-review`}>
+                自己評価
+              </Link>
+            </Button>
+          )}
+          {goalSet.status === 'APPROVED' && isManager && (
+            <Button asChild variant="outline">
+              <Link href={`/goals/${goalSet.id}/manager-review`}>
+                上長評価
+              </Link>
+            </Button>
+          )}
           {canMeetingReject && (
             <MeetingRejectAction goalSetId={goalSet.id} employeeName={goalSet.employee.name} />
           )}
         </div>
       </div>
+
+      {resolvedSearchParams.selfReviewSubmitted === '1' && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-800">自己評価を提出しました</AlertTitle>
+          <AlertDescription className="text-green-700">
+            自己評価の入力が完了しました。上長評価の入力が可能になりました。
+          </AlertDescription>
+        </Alert>
+      )}
 
       {pendingRevision && (
         <Alert className="bg-amber-50 border-amber-200">
