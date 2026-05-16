@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
-import { UserSession } from '@/types';
+import { Role, UserSession } from '@/types';
 
 export async function GET() {
   try {
@@ -32,7 +32,7 @@ export async function GET() {
     }
 
     // Collect all unique roles from active memberships
-    const rolesSet = new Set<string>();
+    const rolesSet = new Set<Role>();
     employee.memberships.forEach(m => {
       m.roles.forEach(r => rolesSet.add(r));
     });
@@ -41,7 +41,7 @@ export async function GET() {
       id: employee.id,
       email: employee.email,
       name: employee.name,
-      roles: Array.from(rolesSet) as any[],
+      roles: Array.from(rolesSet),
     };
 
     return NextResponse.json(userSession);

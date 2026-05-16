@@ -348,7 +348,7 @@ src/
 - 各段階で差し戻しが可能。差し戻された場合は `REJECTED` ステータスとなり、社員が修正して再申請する。
 - **等級1〜2（`is_mbo_target = FALSE`）**: 承認フローなし。入力・保存後は即 `SAVED` ステータスになる。承認申請ボタンは表示しない。
 
-> **承認後の編集制限（v1.3追加・v1.5更新）**: `APPROVED`・承認申請中（`PENDING_*`）の状態では、社員による目標内容の自由編集を禁止する。APIの `PATCH /api/goals/:goalSetId` は `DRAFT` / `REJECTED`（差し戻し後）/ `MEETING_REJECTED`（最終承認後差し戻し）のみ受け付け、それ以外のステータスでは `403 Forbidden` を返す。
+> **承認後の編集制限（v1.3追加・v1.5更新）**: `APPROVED`・承認申請中（`PENDING_*`）の状態では、社員による目標内容の自由編集を禁止する。APIの `PATCH /api/goals/:goalSetId` は `DRAFT` / `REJECTED`（差し戻し後）/ `MEETING_REJECTED`（最終承認後差し戻し）のみ受け付け、それ以外のステータスでは `409 Conflict` を返す。
 
 #### F-06 目標修正申請
 
@@ -380,20 +380,20 @@ src/
 ```
 上長が中間振り返りフィードバック入力時に「修正依頼」フラグを立てる（F-07）
   ↓ 社員に通知
-社員が修正案を作成・申請（REVISION_PENDING）
+社員が修正案を作成・申請（`approval_requests.status = PENDING`）
   ↓ 以降はフロー①と同じ
 ```
 
 **共通ルール:**
 
 - 修正申請（`approval_requests.request_type = GOAL_REVISION`）は上長承認が必要
-- **修正申請中の `goal_sets.status` は `APPROVED` のまま維持する**。`REVISION_APPROVED` になった時点で新バージョンの目標を `is_current = TRUE`、旧バージョンを `is_current = FALSE` に更新する（`goal_sets.status` は変化しない）
+- **修正申請中の `goal_sets.status` は `APPROVED` のまま維持する**。全ステップの承認が完了した時点で新バージョンの目標を `is_current = TRUE`、旧バージョンを `is_current = FALSE` に更新する（`goal_sets.status` は変化しない）
 - 承認されると新バージョンの目標として保存し、変更前の内容は履歴として保持する
 - 差し戻し時はコメント入力必須。社員・申請者に通知される
 - 修正回数に上限は設けないが、全バージョンを履歴として参照可能にする
 - 期初に立てた目標の**削除は不可**（修正・追加のみ可能）
-- 修正申請のステータス: `REVISION_PENDING` → `REVISION_APPROVED` または `REVISION_REJECTED`
-  - `REVISION_REJECTED` の場合、社員は修正案を修正して再申請できる
+- 修正申請のステータスは `approval_requests.status` の `PENDING` / `APPROVED` / `REJECTED` で管理する
+  - `REJECTED` の場合、社員は修正案を修正して再申請できる
 
 #### F-07 中間振り返り（2月）
 
@@ -523,7 +523,7 @@ APPROVED（確定）
 
 **操作仕様:**
 
-- 操作可能ロール: `MANAGER` のうち `position = DEPT_MANAGER`（部長・事業部長、等級7〜8相当）以上、および `HR`・`ADMIN`。ユニット長（`position = UNIT_MANAGER`、等級5〜6）は本操作の権限を持たない
+- 操作可能ロール: `position = DEPT_MANAGER`（部長・事業部長、等級7〜8相当）の社員、および `HR`・`ADMIN`。ユニット長（`position = UNIT_MANAGER`、等級5〜6）は本操作の権限を持たない
 - 操作可能ステータス: `APPROVED` のみ（`PENDING_*` や `DRAFT` には使用しない）
 - 差し戻し時は**コメント入力必須**。コメントは社員・直属上長に通知される
 - `MEETING_REJECTED` 状態の社員は目標を修正し、再度承認申請できる
@@ -535,7 +535,6 @@ APPROVED（確定）
 |----|------|
 | `GOAL_APPROVAL` | 目標設定の承認申請 |
 | `GOAL_REVISION` | 目標修正申請（中間振り返り時など） |
-| `REVISION_REQUEST` | 上長からの修正依頼（v1.4追加。社員への指示起点） |
 | `MEETING_REJECTION` | 最終承認後差し戻し（難易度調整）（v1.3追加、v1.8改称） |
 
 ### 4.3 特殊ケースの評価ルール（v1.5 更新）
@@ -676,7 +675,7 @@ APPROVED（確定）
   - 上長評価スコア・コメント
 - **目標のバージョン履歴タブ**（修正申請の前後を比較表示）
 - ステータス履歴タイムライン
-- **最終承認後差し戻しボタン**（v1.3追加、v1.8改称）: `APPROVED` 状態のときのみ MANAGER以上に表示。クリックで差し戻しコメント入力モーダルを表示し、送信すると `MEETING_REJECTED` に遷移
+- **最終承認後差し戻しボタン**（v1.3追加、v1.8改称）: `APPROVED` 状態かつ修正申請中でないときのみ、`position = DEPT_MANAGER` 以上または HR/ADMIN に表示。クリックで差し戻しコメント入力モーダルを表示し、送信すると `MEETING_REJECTED` に遷移
 - **編集ボタンの表示制御**（v1.3追加）: `DRAFT`・`REJECTED`・`MEETING_REJECTED` のときのみ社員に編集ボタンを表示。`APPROVED`・承認申請中（`PENDING_MANAGER` / `PENDING_DIVISION` / `PENDING_EXECUTIVE`）の場合は表示しない
 
 #### S-05 目標修正申請画面
@@ -1063,20 +1062,18 @@ CREATE TABLE degree360_scores (
 -- 例: GOAL_APPROVAL（4段階）では上長・事業部長・経営の各ステップで計3レコードが順番に生成される。
 -- requester_id: 申請を起こした社員（全ステップ共通）
 -- approver_id:  当該ステップの承認者（ステップごとに異なる）
--- MEETING_REJECTION: requester_id=差し戻しを実行した部長、approver_id=社員（通知先）とする
+-- MEETING_REJECTION: requester_id=差し戻しを実行した部長、approver_id=差し戻し実行者とする
 CREATE TABLE approval_requests (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   request_type   VARCHAR(30) NOT NULL,
-    -- GOAL_APPROVAL / GOAL_REVISION / REVISION_REQUEST / MEETING_REJECTION
+    -- GOAL_APPROVAL / GOAL_REVISION / MEETING_REJECTION
   goal_set_id    UUID        NOT NULL REFERENCES goal_sets(id),
   requester_id   UUID        NOT NULL REFERENCES employees(id),
   approver_id    UUID        NOT NULL REFERENCES employees(id),
   status         VARCHAR(30) NOT NULL,
-    -- 目標設定用（初期値: PENDING_MANAGER）: PENDING_MANAGER / PENDING_DIVISION / PENDING_EXECUTIVE
-    -- 目標修正用（初期値: REVISION_PENDING_MANAGER）: REVISION_PENDING_MANAGER / REVISION_PENDING_DIVISION / REVISION_PENDING_EXECUTIVE
-    -- 最終結果: APPROVED / REJECTED / REVISION_APPROVED / REVISION_REJECTED
+    -- PENDING / APPROVED / REJECTED
   rejection_note TEXT,
-    -- 差し戻し・修正依頼時のコメント。REJECTED / REVISION_REJECTED / MEETING_REJECTION 時は必須
+    -- 差し戻し・修正依頼時のコメント。REJECTED / MEETING_REJECTION 時は必須
   requested_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   resolved_at    TIMESTAMPTZ
 );
@@ -1089,10 +1086,10 @@ CREATE TABLE approval_requests (
 GET    /api/goals                               # 目標一覧（クエリパラメータでフィルタ）
 POST   /api/goals                               # 目標セット作成
 GET    /api/goals/:goalSetId                    # 目標詳細
-PATCH  /api/goals/:goalSetId                    # 目標編集（DRAFT / REJECTED / MEETING_REJECTED のみ受付。それ以外は 403）
+PATCH  /api/goals/:goalSetId                    # 目標編集（DRAFT / REJECTED / MEETING_REJECTED のみ受付。それ以外は 409）
 POST   /api/goals/:goalSetId/submit             # 承認申請提出
 POST   /api/goals/:goalSetId/revision           # 目標修正申請（APPROVED 後の制度的修正。条件あり）
-POST   /api/goals/:goalSetId/meeting-reject     # 最終承認後差し戻し（MANAGER以上・APPROVED時のみ）
+POST   /api/goals/:goalSetId/meeting-reject     # 最終承認後差し戻し（DEPT_MANAGER以上/HR/ADMIN・APPROVED時のみ）
 
 # 承認
 GET    /api/approvals                           # 承認待ち一覧

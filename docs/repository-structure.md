@@ -238,7 +238,7 @@ src/
 │   └── useNotifications.ts # 通知一覧の取得・既読更新
 ├── types/                  # TypeScript 型定義
 │   └── index.ts            # 共通型・Prisma生成型の再エクスポート
-└── middleware.ts            # JWT 検証・未認証リダイレクト（Next.js middleware）
+└── proxy.ts                 # JWT 検証・未認証リダイレクト（Next.js Proxy）
 ```
 
 プロジェクトルートのその他ディレクトリ:

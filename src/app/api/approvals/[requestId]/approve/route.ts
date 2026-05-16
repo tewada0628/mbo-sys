@@ -107,13 +107,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
         },
       });
 
-      // 2. Update goal set status
-      await tx.goalSet.update({
-        where: { id: goalSet.id },
-        data: {
-          status: nextStatus as any,
-        },
-      });
+      // 2. Update goal set status.
+      // Goal revisions keep the goal set APPROVED throughout the approval flow.
+      if (!isRevision) {
+        await tx.goalSet.update({
+          where: { id: goalSet.id },
+          data: {
+            status: nextStatus,
+          },
+        });
+      }
 
       // 3. Create next request if not final
       if (nextApproverId && !isFinalApproval) {
@@ -132,15 +135,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
           data: {
             employeeId: nextApproverId,
             type: 'APPROVAL_REQUEST',
-            message: `${request.requester.name}さんの目標設定の承認依頼が届いています。`,
+            message: `${request.requester.name}さんの${isRevision ? '目標修正' : '目標設定'}の承認依頼が届いています。`,
           },
         });
       }
 
       // 4. Notify requester
       const requesterMessage = isFinalApproval
-        ? 'あなたの目標設定が最終承認されました。'
-        : 'あなたの目標設定が承認され、次のステップへ進みました。';
+        ? `あなたの${isRevision ? '目標修正' : '目標設定'}が最終承認されました。`
+        : `あなたの${isRevision ? '目標修正' : '目標設定'}が承認され、次のステップへ進みました。`;
 
       await tx.notification.create({
         data: {

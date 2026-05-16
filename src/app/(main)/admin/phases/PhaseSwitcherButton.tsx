@@ -28,8 +28,8 @@ export function PhaseSwitcherButton({ phaseId }: { phaseId: string }) {
 
       router.refresh();
       alert('フェーズを切り替えました。');
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'フェーズの切り替えに失敗しました。');
     } finally {
       setIsLoading(false);
     }

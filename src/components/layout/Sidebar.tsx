@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Role } from '@prisma/client';
 import { 
   LayoutDashboard, 
   Target, 
@@ -19,7 +20,7 @@ type NavItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
-  visible: (roles: string[]) => boolean;
+  visible: (roles: Role[]) => boolean;
 };
 
 const navItems: NavItem[] = [
@@ -39,31 +40,31 @@ const navItems: NavItem[] = [
     label: '部下の目標一覧',
     href: '/goals',
     icon: <Users className="h-5 w-5" />,
-    visible: (roles) => isManager(roles as any[]) || hasAdminPrivilege(roles as any[]),
+    visible: (roles) => isManager(roles) || hasAdminPrivilege(roles),
   },
   {
     label: '承認・申請管理',
     href: '/approvals',
     icon: <CheckSquare className="h-5 w-5" />,
-    visible: (roles) => isManager(roles as any[]) || hasAdminPrivilege(roles as any[]),
+    visible: (roles) => isManager(roles) || hasAdminPrivilege(roles),
   },
   {
     label: '評価調整・確定',
     href: '/admin/review-adjustment',
     icon: <BarChart className="h-5 w-5" />,
-    visible: (roles) => hasAdminPrivilege(roles as any[]),
+    visible: (roles) => hasAdminPrivilege(roles),
   },
   {
     label: 'フェーズ管理(テスト用)',
     href: '/admin/phases',
     icon: <Calendar className="h-5 w-5" />,
-    visible: (roles) => hasAdminPrivilege(roles as any[]),
+    visible: (roles) => hasAdminPrivilege(roles),
   },
   {
     label: 'システム管理',
     href: '/admin/users',
     icon: <Settings className="h-5 w-5" />,
-    visible: (roles) => hasAdminPrivilege(roles as any[]),
+    visible: (roles) => hasAdminPrivilege(roles),
   },
 ];
 
@@ -108,7 +109,7 @@ export function Sidebar() {
         )}
       </nav>
       
-      {!isLoading && user && hasAdminPrivilege(user.roles as any[]) && (
+      {!isLoading && user && hasAdminPrivilege(user.roles) && (
         <div className="border-t p-4">
           <div className="rounded-md bg-amber-50 p-3 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5" />

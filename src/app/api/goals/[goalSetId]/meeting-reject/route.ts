@@ -2,9 +2,20 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 
+const isDeptManagerOrAdmin = (memberships: { roles: string[]; position: string }[]) => {
+  return memberships.some((membership) => {
+    return (
+      membership.roles.includes('ADMIN') ||
+      membership.roles.includes('HR') ||
+      membership.position === 'DEPT_MANAGER'
+    );
+  });
+};
+
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
     const { goalSetId } = await params;
+    const { rejectionNote } = await req.json();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -12,8 +23,40 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!rejectionNote || typeof rejectionNote !== 'string' || rejectionNote.trim() === '') {
+      return NextResponse.json({ error: '差し戻し理由（rejectionNote）は必須です。' }, { status: 400 });
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { email: user.email },
+      include: {
+        memberships: {
+          where: {
+            validFrom: { lte: new Date() },
+            OR: [
+              { validTo: null },
+              { validTo: { gt: new Date() } },
+            ],
+          },
+          select: {
+            roles: true,
+            position: true,
+          },
+        },
+      },
+    });
+
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    if (!isDeptManagerOrAdmin(employee.memberships)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const goalSet = await prisma.goalSet.findUnique({
       where: { id: goalSetId },
+      include: { membership: true },
     });
 
     if (!goalSet) {
@@ -24,13 +67,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
       return NextResponse.json({ error: 'Can only meeting-reject from APPROVED status' }, { status: 409 });
     }
 
-    // Role check logic would be here for DEPT_MANAGER+ 
-    // We assume the frontend checked the role to display the button, 
-    // but in a real app we'd verify the user's role on the backend too.
+    await prisma.$transaction(async (tx) => {
+      await tx.goalSet.update({
+        where: { id: goalSet.id },
+        data: { status: 'MEETING_REJECTED' },
+      });
 
-    await prisma.goalSet.update({
-      where: { id: goalSet.id },
-      data: { status: 'MEETING_REJECTED' }
+      await tx.approvalRequest.create({
+        data: {
+          requestType: 'MEETING_REJECTION',
+          goalSetId: goalSet.id,
+          requesterId: employee.id,
+          approverId: employee.id,
+          status: 'REJECTED',
+          rejectionNote: rejectionNote.trim(),
+          resolvedAt: new Date(),
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          employeeId: goalSet.employeeId,
+          type: 'MEETING_REJECTED',
+          message: '難易度調整のため、承認済み目標が差し戻されました。差し戻し理由を確認してください。',
+        },
+      });
+
+      if (goalSet.membership.managerId && goalSet.membership.managerId !== goalSet.employeeId) {
+        await tx.notification.create({
+          data: {
+            employeeId: goalSet.membership.managerId,
+            type: 'MEETING_REJECTED',
+            message: '担当社員の承認済み目標が最終承認後に差し戻されました。',
+          },
+        });
+      }
     });
 
     return NextResponse.json({ success: true });

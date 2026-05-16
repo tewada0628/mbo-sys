@@ -147,16 +147,16 @@
 
 ### 5-4. 承認・申請管理（S-15）
 
-- [ ] `src/components/approvals/ApprovalList.tsx` 作成
-- [ ] `src/components/approvals/ApprovalActionModal.tsx` 作成
-- [ ] `src/components/approvals/MeetingRejectModal.tsx` 作成
-- [ ] `src/app/(main)/approvals/page.tsx` 作成（タブ: 承認待ち / 承認済み / 差し戻し済み）
-- [ ] `src/app/api/approvals/route.ts` 作成
-- [ ] `src/app/api/approvals/[requestId]/approve/route.ts` 作成
-  - [ ] 承認ステップに応じた status 遷移（PENDING_MANAGER → PENDING_DIVISION → PENDING_EXECUTIVE → APPROVED）
-  - [ ] 各承認時に `notifications` テーブルへ通知レコードを書き込む
-- [ ] `src/app/api/approvals/[requestId]/reject/route.ts` 作成
-  - [ ] 差し戻し時に `notifications` テーブルへ通知レコードを書き込む
+- [x] `src/components/approvals/ApprovalList.tsx` 作成
+- [x] `src/components/approvals/ApprovalActionModal.tsx` 作成
+- [x] `src/components/approvals/MeetingRejectModal.tsx` 作成
+- [x] `src/app/(main)/approvals/page.tsx` 作成（タブ: 承認待ち / 承認済み / 差し戻し済み）
+- [x] `src/app/api/approvals/route.ts` 作成
+- [x] `src/app/api/approvals/[requestId]/approve/route.ts` 作成
+  - [x] 承認ステップに応じた status 遷移（PENDING_MANAGER → PENDING_DIVISION → PENDING_EXECUTIVE → APPROVED）
+  - [x] 各承認時に `notifications` テーブルへ通知レコードを書き込む
+- [x] `src/app/api/approvals/[requestId]/reject/route.ts` 作成
+  - [x] 差し戻し時に `notifications` テーブルへ通知レコードを書き込む
 
 **完了条件**: 4段階の承認フローが正常に動作する / 差し戻し後に社員が再申請できる
 
@@ -164,13 +164,13 @@
 
 ### 5-5. 中間振り返り（F-07）
 
-- [ ] `src/components/reviews/MidtermReviewForm.tsx` 作成
-  - [ ] 各目標項目ごとの社員コメント入力
-  - [ ] 各目標項目ごとの上長コメント入力（上長ロールのみ表示）
-  - [ ] 上長が修正依頼を送る機能（`revision_requested` フラグを true に設定）
-- [ ] `src/app/api/goals/[goalSetId]/midterm-review/route.ts` 作成
-  - [ ] `employee_submitted_at` / `manager_submitted_at` の個別保存
-  - [ ] `revision_requested` フラグ更新エンドポイント
+- [x] `src/components/reviews/MidtermReviewForm.tsx` 作成
+  - [x] 各目標項目ごとの社員コメント入力
+  - [x] 各目標項目ごとの上長コメント入力（上長ロールのみ表示）
+  - [x] 上長が修正依頼を送る機能（`revision_requested` フラグを true に設定）
+- [x] `src/app/api/goals/[goalSetId]/midterm-review/route.ts` 作成
+  - [x] `employee_submitted_at` / `manager_submitted_at` の個別保存
+  - [x] `revision_requested` フラグ更新エンドポイント
 
 **完了条件**: 社員と上長がそれぞれコメントを入力・保存できる / 修正依頼フラグが立つとダッシュボードの対応事項に表示される
 

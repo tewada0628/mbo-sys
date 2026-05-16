@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Role, EmployeeType } from '@prisma/client';
 
 export const employeeUpdateSchema = z.object({
   name: z.string().min(1, '名前を入力してください'),

@@ -116,15 +116,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
         }
       });
 
-      // 3. Update goal set status to reflect the revision progress
-      await tx.goalSet.update({
-        where: { id: goalSet.id },
-        data: { status: 'PENDING_MANAGER' }
+      await tx.notification.create({
+        data: {
+          employeeId: approverId,
+          type: 'APPROVAL_REQUEST',
+          message: `${employee.name}さんの目標修正の承認依頼が届いています。`,
+        },
       });
+
+      // goal_sets.status remains APPROVED while a revision is being approved.
+      // The pending approvalRequest is the source of truth for revision progress.
     });
 
     return NextResponse.json({ success: true, message: 'Revision requested successfully' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating revision:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

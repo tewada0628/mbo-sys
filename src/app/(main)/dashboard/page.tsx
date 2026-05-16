@@ -3,7 +3,7 @@ import prisma from '@/lib/db';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Calendar, CheckSquare, Clock, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Calendar, CheckSquare, Clock, CheckCircle2, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
   });
   
   // 3. Action Items Logic
-  const actionItems: { title: string; desc: string; link: string; icon: any; color: string }[] = [];
+  const actionItems: { title: string; desc: string; link: string; icon: LucideIcon; color: string }[] = [];
   
   let primaryGoalSetFlags = {
     hasRejectedRevision: false,

@@ -53,6 +53,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
           status: 'PENDING'
         }
       });
+
+      await tx.notification.create({
+        data: {
+          employeeId: managerId,
+          type: 'APPROVAL_REQUEST',
+          message: `${goalSet.employee.name}さんの目標設定の承認依頼が届いています。`,
+        },
+      });
     });
 
     return NextResponse.json({ success: true });
