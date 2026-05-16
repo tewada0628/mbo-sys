@@ -11,7 +11,9 @@ import {
   Settings, 
   BarChart, 
   ShieldAlert,
-  Calendar
+  Calendar,
+  Building2,
+  UserCog,
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { hasAdminPrivilege, isManager } from '@/lib/permissions';
@@ -61,8 +63,20 @@ const navItems: NavItem[] = [
     visible: (roles) => hasAdminPrivilege(roles),
   },
   {
-    label: 'システム管理',
+    label: '社員管理',
     href: '/admin/users',
+    icon: <UserCog className="h-5 w-5" />,
+    visible: (roles) => hasAdminPrivilege(roles),
+  },
+  {
+    label: '組織管理',
+    href: '/admin/organizations',
+    icon: <Building2 className="h-5 w-5" />,
+    visible: (roles) => hasAdminPrivilege(roles),
+  },
+  {
+    label: '評価期管理',
+    href: '/admin/periods',
     icon: <Settings className="h-5 w-5" />,
     visible: (roles) => hasAdminPrivilege(roles),
   },
