@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod/dist/zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { goalSetSchema } from '@/lib/validations/goal';
 import { z } from 'zod';
 import { GoalType } from '@prisma/client';
