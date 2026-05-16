@@ -98,10 +98,15 @@ export default async function SubordinateGoalsPage() {
                 <p className="text-xs text-muted-foreground">{gs.evaluationPeriod.name}</p>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-end pt-4">
+                <div className="flex flex-wrap justify-end gap-2 pt-4">
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/goals/${gs.id}`}>詳細を表示</Link>
                   </Button>
+                  {gs.status === 'APPROVED' && (
+                    <Button asChild size="sm">
+                      <Link href={`/goals/${gs.id}/manager-review`}>上長評価</Link>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
