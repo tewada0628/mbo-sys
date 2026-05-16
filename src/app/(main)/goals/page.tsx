@@ -1,33 +1,11 @@
 import { redirect } from 'next/navigation';
+import type { Prisma } from '@prisma/client';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { GoalSetStatus } from '@prisma/client';
+import { GoalSetListTable, type GoalSetListRow } from '@/components/goals/GoalSetListTable';
+import { hasAdminPrivilege, isManager } from '@/lib/permissions';
 
-const STATUS_LABELS: Record<GoalSetStatus, string> = {
-  DRAFT: '下書き',
-  SAVED: '保存済み',
-  PENDING_MANAGER: '上長承認待ち',
-  PENDING_DIVISION: '事業部長承認待ち',
-  PENDING_EXECUTIVE: '役員承認待ち',
-  APPROVED: '承認完了',
-  REJECTED: '差し戻し',
-  MEETING_REJECTED: '会議差し戻し',
-};
-
-const STATUS_COLORS: Record<GoalSetStatus, string> = {
-  DRAFT: 'bg-gray-100 text-gray-800',
-  SAVED: 'bg-gray-100 text-gray-800',
-  PENDING_MANAGER: 'bg-amber-100 text-amber-800',
-  PENDING_DIVISION: 'bg-amber-100 text-amber-800',
-  PENDING_EXECUTIVE: 'bg-amber-100 text-amber-800',
-  APPROVED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800',
-  MEETING_REJECTED: 'bg-red-100 text-red-800',
-};
+export const revalidate = 0;
 
 export default async function SubordinateGoalsPage() {
   const supabase = await createClient();
@@ -37,82 +15,139 @@ export default async function SubordinateGoalsPage() {
     redirect('/login');
   }
 
+  const now = new Date();
   const currentEmployee = await prisma.employee.findUnique({
-    where: { email: user.email },
+    where: { email: user.email ?? '' },
     include: {
       memberships: {
-        where: { validTo: null }
-      }
-    }
+        where: {
+          validFrom: { lte: now },
+          OR: [
+            { validTo: null },
+            { validTo: { gt: now } },
+          ],
+        },
+      },
+    },
   });
 
   if (!currentEmployee) {
     redirect('/login');
   }
 
-  // Get goal sets where current user is the manager, division manager, or executive
-  const subordinateGoalSets = await prisma.goalSet.findMany({
-    where: {
+  const roles = Array.from(new Set(currentEmployee.memberships.flatMap((membership) => membership.roles)));
+  const currentOrganizationIds = Array.from(
+    new Set(currentEmployee.memberships.map((membership) => membership.organizationSnapshotId)),
+  );
+  const visibilityConditions: Prisma.GoalSetWhereInput[] = [];
+
+  if (currentOrganizationIds.length > 0) {
+    visibilityConditions.push({
+      membership: {
+        organizationSnapshotId: { in: currentOrganizationIds },
+      },
+    });
+  }
+
+  if (isManager(roles)) {
+    visibilityConditions.push({
       membership: {
         OR: [
           { managerId: currentEmployee.id },
           { divisionManagerId: currentEmployee.id },
           { executiveId: currentEmployee.id },
-        ]
+        ],
       },
-      isActive: true
-    },
+    });
+  }
+
+  const goalSetWhere: Prisma.GoalSetWhereInput = {
+    isActive: true,
+    ...(hasAdminPrivilege(roles)
+      ? {}
+      : {
+          OR: visibilityConditions.length > 0
+            ? visibilityConditions
+            : [{ employeeId: currentEmployee.id }],
+        }),
+  };
+
+  const goalSets = await prisma.goalSet.findMany({
+    where: goalSetWhere,
     include: {
       employee: true,
       evaluationPeriod: true,
+      membership: {
+        include: {
+          organizationSnapshot: true,
+        },
+      },
+      goals: {
+        where: { isCurrent: true },
+        orderBy: { goalType: 'asc' },
+        include: {
+          selfReview: true,
+          managerReview: true,
+        },
+      },
+      finalEvaluation: true,
     },
     orderBy: {
       employee: {
-        name: 'asc'
-      }
-    }
+        name: 'asc',
+      },
+    },
+  });
+
+  const rows: GoalSetListRow[] = goalSets.map((goalSet) => {
+    const reviewTarget = goalSet.isMboTarget && !goalSet.isEvaluationExempt;
+    const hasGoals = goalSet.goals.length > 0;
+    const selfReviewSubmitted = reviewTarget
+      ? hasGoals && goalSet.goals.every((goal) => Boolean(goal.selfReview?.submittedAt))
+      : null;
+    const managerReviewSubmitted = reviewTarget
+      ? hasGoals && goalSet.goals.every((goal) => Boolean(goal.managerReview?.submittedAt))
+      : null;
+
+    return {
+      id: goalSet.id,
+      employeeName: goalSet.employee.name,
+      employeeCode: goalSet.employee.employeeCode,
+      organizationName: goalSet.membership.organizationSnapshot.name,
+      grade: goalSet.membership.grade,
+      position: goalSet.membership.position,
+      evaluationPeriodName: goalSet.evaluationPeriod.name,
+      status: goalSet.status,
+      isMboTarget: goalSet.isMboTarget,
+      goalTitles: goalSet.goals.map((goal) => goal.title),
+      selfReviewSubmitted,
+      managerReviewSubmitted,
+      mboScore: goalSet.finalEvaluation ? Number(goalSet.finalEvaluation.mboScore) : null,
+      canManagerReview: Boolean(
+        reviewTarget &&
+        goalSet.status === 'APPROVED' &&
+        goalSet.membership.managerId === currentEmployee.id &&
+        selfReviewSubmitted,
+      ),
+    };
   });
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">部下の目標一覧</h2>
-        <p className="text-muted-foreground">承認・評価を担当する部下の一覧です。</p>
+        <h2 className="text-2xl font-bold tracking-tight">目標一覧（自部署）</h2>
+        <p className="text-muted-foreground">
+          自部署および承認・評価を担当するメンバーの目標セットを確認できます。
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {subordinateGoalSets.length === 0 ? (
-          <p className="col-span-full text-center py-12 text-muted-foreground bg-gray-50 rounded-lg border border-dashed">
-            担当する部下の目標セットが見つかりませんでした。
-          </p>
-        ) : (
-          subordinateGoalSets.map((gs) => (
-            <Card key={gs.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-bold">{gs.employee.name}</CardTitle>
-                  <Badge className={STATUS_COLORS[gs.status]}>
-                    {STATUS_LABELS[gs.status]}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">{gs.evaluationPeriod.name}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap justify-end gap-2 pt-4">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/goals/${gs.id}`}>詳細を表示</Link>
-                  </Button>
-                  {gs.status === 'APPROVED' && (
-                    <Button asChild size="sm">
-                      <Link href={`/goals/${gs.id}/manager-review`}>上長評価</Link>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-lg border border-dashed bg-gray-50 py-12 text-center text-muted-foreground">
+          表示できる目標セットが見つかりませんでした。
+        </p>
+      ) : (
+        <GoalSetListTable rows={rows} />
+      )}
     </div>
   );
 }

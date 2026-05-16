@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
     visible: () => true,
   },
   {
-    label: '部下の目標一覧',
+    label: '目標一覧（自部署）',
     href: '/goals',
     icon: <Users className="h-5 w-5" />,
     visible: (roles) => isManager(roles) || hasAdminPrivilege(roles),
