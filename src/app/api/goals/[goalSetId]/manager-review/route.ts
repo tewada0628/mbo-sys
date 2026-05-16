@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { managerReviewRequestSchema } from '@/lib/validations/review';
+import { canOperateInPhase, EVALUATION_PHASES, getActiveRoles, getCurrentPhase } from '@/lib/phases';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -13,9 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { email: user.email },
-    });
+    const { employee, roles } = await getActiveRoles(user.email);
 
     if (!employee) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
@@ -49,6 +48,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
 
     if (goalSet.status !== 'APPROVED') {
       return NextResponse.json({ error: '承認済みの目標セットのみ上長評価を提出できます。' }, { status: 409 });
+    }
+
+    const currentPhase = await getCurrentPhase(goalSet.evaluationPeriodId);
+    if (!canOperateInPhase(roles, currentPhase?.phaseType, [EVALUATION_PHASES.MANAGER_REVIEW])) {
+      return NextResponse.json({ error: '上長評価フェーズ外のため提出できません。' }, { status: 403 });
     }
 
     const hasAllSelfReviews = goalSet.goals.every((goal) => goal.selfReview?.submittedAt);
