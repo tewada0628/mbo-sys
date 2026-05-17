@@ -8,14 +8,29 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const body = await req.json();
+    const evaluationPeriodId = typeof body.evaluationPeriodId === 'string' ? body.evaluationPeriodId : '';
+
+    if (!evaluationPeriodId) {
+      return NextResponse.json({ error: 'Evaluation period is required' }, { status: 400 });
+    }
+
     const employee = await prisma.employee.findUnique({
-      where: { email: user.email! },
+      where: { email: user.email },
       include: {
         memberships: {
+          where: {
+            organizationSnapshot: {
+              evaluationPeriodId,
+            },
+          },
+          orderBy: {
+            validFrom: 'desc',
+          },
           include: {
             organizationSnapshot: {
               include: { evaluationPeriod: true }
@@ -26,26 +41,42 @@ export async function POST(req: Request) {
     });
 
     if (!employee || employee.memberships.length === 0) {
-      return NextResponse.json({ error: 'No active membership found' }, { status: 400 });
+      return NextResponse.json({ error: 'No membership found for selected evaluation period' }, { status: 400 });
     }
 
-    const body = await req.json();
     const result = goalSetSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json({ error: 'Invalid input', details: result.error.issues }, { status: 400 });
     }
 
-    const membership = employee.memberships[0];
+    const membership = employee.memberships.find((item) => item.validTo === null) ?? employee.memberships[0];
     const isMboExempt = membership.employeeType !== 'REGULAR' || membership.grade <= 2;
     const initialStatus = isMboExempt ? 'SAVED' : 'DRAFT';
+
+    const existingGoalSet = await prisma.goalSet.findFirst({
+      where: {
+        employeeId: employee.id,
+        evaluationPeriodId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (existingGoalSet) {
+      return NextResponse.json(
+        { error: 'Goal set already exists for selected evaluation period', id: existingGoalSet.id },
+        { status: 409 },
+      );
+    }
 
     const goalSet = await prisma.goalSet.create({
       data: {
         employeeId: employee.id,
-        evaluationPeriodId: membership.organizationSnapshot.evaluationPeriodId,
+        evaluationPeriodId,
         membershipId: membership.id,
         status: initialStatus,
+        isMboTarget: !isMboExempt,
         isEvaluationExempt: isMboExempt,
         goals: {
           create: result.data.goals.map(g => ({

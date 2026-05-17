@@ -3,7 +3,13 @@ import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { GoalForm } from '@/components/goals/GoalForm';
 
-export default async function NewGoalPage() {
+export default async function NewGoalPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ evaluationPeriodId?: string; periodId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const requestedEvaluationPeriodId = resolvedSearchParams.evaluationPeriodId ?? resolvedSearchParams.periodId ?? null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -15,6 +21,9 @@ export default async function NewGoalPage() {
     where: { email: user.email! },
     include: {
       memberships: {
+        orderBy: {
+          validFrom: 'desc',
+        },
         include: {
           organizationSnapshot: {
             include: {
@@ -34,15 +43,34 @@ export default async function NewGoalPage() {
     redirect('/dashboard');
   }
 
-  // Assuming active membership for current period
-  const activeMembership = employee.memberships[0];
-  const isMboExempt = activeMembership.employeeType !== 'REGULAR' || activeMembership.grade <= 2;
+  const now = new Date();
+  const activeMemberships = employee.memberships.filter((membership) => (
+    membership.organizationSnapshot.evaluationPeriod.status === 'ACTIVE'
+  ));
+  const selectedMembership = requestedEvaluationPeriodId
+    ? activeMemberships.find((membership) => (
+        membership.organizationSnapshot.evaluationPeriodId === requestedEvaluationPeriodId
+      ))
+    : activeMemberships.find((membership) => (
+        membership.organizationSnapshot.evaluationPeriod.phases.some((phase) => (
+          phase.phaseType === 'GOAL_SETTING' &&
+          phase.startDate <= now &&
+          phase.endDate >= now
+        ))
+      )) ?? activeMemberships[0];
+
+  if (!selectedMembership) {
+    redirect('/dashboard');
+  }
+
+  const selectedEvaluationPeriodId = selectedMembership.organizationSnapshot.evaluationPeriodId;
+  const isMboExempt = selectedMembership.employeeType !== 'REGULAR' || selectedMembership.grade <= 2;
 
   // Check if they already have an active GoalSet for this period
   const existingGoalSet = await prisma.goalSet.findFirst({
     where: {
       employeeId: employee.id,
-      evaluationPeriodId: activeMembership.organizationSnapshot.evaluationPeriodId,
+      evaluationPeriodId: selectedEvaluationPeriodId,
       isActive: true,
     }
   });
@@ -56,11 +84,11 @@ export default async function NewGoalPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">目標設定 (新規作成)</h2>
         <p className="text-muted-foreground">
-          {activeMembership.organizationSnapshot.evaluationPeriod.name} の目標を設定してください。
+          {selectedMembership.organizationSnapshot.evaluationPeriod.name} の目標を設定してください。
         </p>
       </div>
 
-      <GoalForm isMboExempt={isMboExempt} />
+      <GoalForm isMboExempt={isMboExempt} evaluationPeriodId={selectedEvaluationPeriodId} />
     </div>
   );
 }

@@ -22,6 +22,7 @@ type GoalFormValues = z.infer<typeof goalSetSchema>;
 interface GoalFormProps {
   initialData?: GoalFormValues;
   goalSetId?: string;
+  evaluationPeriodId?: string;
   isMboExempt?: boolean;
   isRevision?: boolean;
 }
@@ -62,7 +63,7 @@ const defaultGoals = [
   },
 ];
 
-export function GoalForm({ initialData, goalSetId, isMboExempt, isRevision }: GoalFormProps) {
+export function GoalForm({ initialData, goalSetId, evaluationPeriodId, isMboExempt, isRevision }: GoalFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -91,7 +92,7 @@ export function GoalForm({ initialData, goalSetId, isMboExempt, isRevision }: Go
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(goalSetId || isRevision ? data : { ...data, evaluationPeriodId }),
       });
 
       if (!res.ok) {
