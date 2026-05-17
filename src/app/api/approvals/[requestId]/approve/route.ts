@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(req: Request, { params }: { params: Promise<{ requestId: string }> }) {
   try {
@@ -131,12 +132,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
         });
 
         // Notify next approver
-        await tx.notification.create({
-          data: {
-            employeeId: nextApproverId,
-            type: 'APPROVAL_REQUEST',
-            message: `${request.requester.name}さんの${isRevision ? '目標修正' : '目標設定'}の承認依頼が届いています。`,
-          },
+        await createNotification({
+          employeeId: nextApproverId,
+          type: 'APPROVAL_REQUEST',
+          message: `${request.requester.name}さんの${isRevision ? '目標修正' : '目標設定'}の承認依頼が届いています。`,
+          sendEmail: true,
+          client: tx,
         });
       }
 
@@ -145,12 +146,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
         ? `あなたの${isRevision ? '目標修正' : '目標設定'}が最終承認されました。`
         : `あなたの${isRevision ? '目標修正' : '目標設定'}が承認され、次のステップへ進みました。`;
 
-      await tx.notification.create({
-        data: {
-          employeeId: request.requesterId,
-          type: isFinalApproval ? 'APPROVAL_COMPLETED' : 'APPROVAL_PROGRESSED',
-          message: requesterMessage,
-        },
+      await createNotification({
+        employeeId: request.requesterId,
+        type: isFinalApproval ? 'APPROVAL_COMPLETED' : 'APPROVAL_PROGRESSED',
+        message: requesterMessage,
+        sendEmail: true,
+        client: tx,
       });
 
       // 5. If final revision approval, swap goals

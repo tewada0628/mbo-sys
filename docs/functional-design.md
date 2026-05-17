@@ -43,7 +43,7 @@ graph TD
     end
 
     subgraph External["外部サービス"]
-        SendGrid["SendGrid\n（トランザクションメール）"]
+        SES["AWS SES\n（トランザクションメール）"]
         SmartHR["SmartHR\n（CSV連携）"]
     end
 
@@ -51,7 +51,7 @@ graph TD
     Next -->|JWT検証| Auth
     Next -->|Prisma ORM| DB
     Next -->|Admin API| Storage
-    EdgeFn -->|SMTP| SendGrid
+    EdgeFn -->|API| SES
     SmartHR -->|CSVアップロード| Next
     DB -->|Webhook| EdgeFn
 ```
@@ -67,7 +67,7 @@ graph TD
 | データベース | PostgreSQL (Supabase) + PgBouncer | メインDB・コネクションプール |
 | 認証 | Supabase Auth | メールOTP認証（パスワード不要）・JWT発行・セッション管理 |
 | ホスティング | Vercel | CI/CD・プレビュー環境 |
-| メール通知 | Supabase Edge Functions + SendGrid | 承認通知・リマインダー |
+| メール通知 | Supabase Edge Functions + AWS SES | 承認通知・リマインダー |
 | CI/CD | GitHub Actions + Vercel | Lint・テスト・デプロイ自動化 |
 
 ### 1.3 ディレクトリ構成
@@ -953,7 +953,7 @@ E003,3,ENGINEER,MEMBER,REGULAR,MEMBER,E011,E020
 
 ### 8.1 通知トリガー一覧
 
-アプリ内通知（`notifications` テーブル）およびメール通知（SendGrid経由）の発火タイミングと対象者を定義する。
+アプリ内通知（`notifications` テーブル）およびメール通知（AWS SES経由）の発火タイミングと対象者を定義する。
 
 | トリガーイベント | 通知先 | notifications.type | 通知タイミング |
 | --------- | --- | ------------------ | ------- |

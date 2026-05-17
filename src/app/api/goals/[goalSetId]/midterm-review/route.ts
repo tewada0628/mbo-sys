@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
 import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
+import { createNotification } from '@/lib/notifications';
 
 type MidtermReviewPayload = {
   goalId: string;
@@ -106,12 +107,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
       if (isManager && action === 'submit_manager') {
         const hasRevisionRequest = (reviews as MidtermReviewPayload[]).some((r) => r.revisionRequested);
         if (hasRevisionRequest) {
-          await tx.notification.create({
-            data: {
-              employeeId: goalSet.employeeId,
-              type: 'MIDTERM_REVISION_REQUESTED',
-              message: '中間振り返りで上長から修正依頼が届いています。',
-            },
+          await createNotification({
+            employeeId: goalSet.employeeId,
+            type: 'MIDTERM_REVISION_REQUESTED',
+            message: '中間振り返りで上長から修正依頼が届いています。',
+            sendEmail: true,
+            client: tx,
           });
         }
       }

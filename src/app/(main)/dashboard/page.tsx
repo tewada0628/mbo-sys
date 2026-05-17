@@ -200,10 +200,15 @@ export default async function DashboardPage() {
   // 3-3. User action items based on Phase(s)
   for (const phase of currentPhases) {
     const periodGoalSet = goalSets.find(gs => gs.evaluationPeriodId === phase.evaluationPeriodId);
+    const isReviewTarget = !!periodGoalSet && periodGoalSet.isMboTarget && !periodGoalSet.isEvaluationExempt;
     
     // Goal Setting Phase
     if (phase.phaseType === 'GOAL_SETTING') {
-      if (!periodGoalSet || periodGoalSet.status === 'DRAFT' || periodGoalSet.status === 'SAVED') {
+      const needsGoalInput = !periodGoalSet || periodGoalSet.status === 'DRAFT' || (
+        periodGoalSet.status === 'SAVED' && isReviewTarget
+      );
+
+      if (needsGoalInput) {
         actionItems.push({
           title: `[${phase.periodName}] 目標設定の入力`,
           desc: '今期の目標を設定して申請してください',
@@ -227,7 +232,7 @@ export default async function DashboardPage() {
           icon: AlertCircle,
           color: 'text-red-600 bg-red-50 border-red-200'
         });
-      } else if (!isMidtermSubmitted) {
+      } else if (isReviewTarget && !isMidtermSubmitted) {
         actionItems.push({
           title: `[${phase.periodName}] 中間振り返りの実施`,
           desc: '中間振り返りを入力してください',
@@ -242,7 +247,7 @@ export default async function DashboardPage() {
     if (phase.phaseType === 'SELF_REVIEW') {
       const isSelfReviewSubmitted = periodGoalSet?.goals.every(g => g.selfReview?.submittedAt);
 
-      if (periodGoalSet && !isSelfReviewSubmitted) {
+      if (isReviewTarget && !isSelfReviewSubmitted) {
         actionItems.push({
           title: `[${phase.periodName}] 自己評価の入力`,
           desc: '期末の自己評価を入力してください',

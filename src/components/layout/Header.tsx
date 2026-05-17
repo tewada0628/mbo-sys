@@ -2,30 +2,14 @@
 
 import { Bell, LogOut, User } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useNotifications } from '@/hooks/useNotifications';
 import { createBrowserClient } from '@supabase/ssr';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
-
-type NotificationsResponse = {
-  unreadCount: number;
-};
-
-const fetcher = (url: string) => fetch(url).then((res) => {
-  if (!res.ok) throw new Error('Failed to fetch notifications');
-  return res.json() as Promise<NotificationsResponse>;
-});
 
 export function Header() {
   const { user, isLoading } = useCurrentUser();
-  const { data: notifications } = useSWR<NotificationsResponse>(
-    user ? '/api/notifications' : null,
-    fetcher,
-    {
-      refreshInterval: 30000,
-      revalidateOnFocus: true,
-      shouldRetryOnError: false,
-    },
-  );
+  const { unreadCount } = useNotifications({ enabled: !!user, limit: 10 });
   const router = useRouter();
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,14 +29,14 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-6">
-        <button className="relative text-gray-500 hover:text-gray-700" title="通知">
+        <Link href="/notifications" className="relative text-gray-500 hover:text-gray-700" title="通知">
           <Bell className="h-5 w-5" />
-          {notifications && notifications.unreadCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#01AEBB] px-1 text-[10px] font-medium text-white">
-              {notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
-        </button>
+        </Link>
 
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">

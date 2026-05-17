@@ -67,10 +67,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
         }))
       });
       
-      // Update goal set updatedAt
+      const isSavedGoalSet = (
+        goalSet.isEvaluationExempt ||
+        !goalSet.isMboTarget ||
+        goalSet.membership.employeeType !== 'REGULAR' ||
+        goalSet.membership.grade <= 2
+      );
+
       await tx.goalSet.update({
         where: { id: goalSet.id },
-        data: { updatedAt: new Date() }
+        data: {
+          updatedAt: new Date(),
+          ...(isSavedGoalSet ? { status: 'SAVED' } : {}),
+        },
       });
     });
 

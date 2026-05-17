@@ -39,7 +39,7 @@
 | 認証 | Supabase Auth | - | メールOTP認証（パスワード不要）。JWT発行・セッション管理 |
 | ホスティング | Vercel | - | CI/CD・プレビュー環境・Edge Networkが組み込み済み |
 | ファイルストレージ | Supabase Storage | - | 将来の添付ファイル対応。S3互換API |
-| メール通知 | Supabase Edge Functions + SendGrid | - | トランザクションメール配信 |
+| メール通知 | Supabase Edge Functions + AWS SES | - | トランザクションメール配信 |
 | CI/CD | GitHub Actions + Vercel | - | Lint・テスト・デプロイの自動化 |
 
 ### 1.2 フロントエンド詳細
@@ -106,7 +106,7 @@ Vercel（Edge Network）
          └ Storage（将来の添付ファイル）
        ↓ Webhook
        Supabase Edge Functions
-         └ SendGrid（メール通知）
+         └ AWS SES（メール通知）
 
 SmartHR → CSV → Vercel（`POST /api/admin/smarthr/import`）
 ```
@@ -147,7 +147,13 @@ Vercel（自動デプロイ）
 | `NEXT_PUBLIC_SUPABASE_URL` | 公開 | Supabase プロジェクト URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 公開 | Supabase 匿名キー（クライアント認証用） |
 | `SUPABASE_SERVICE_ROLE_KEY` | サーバーのみ | Supabase サービスロールキー（管理操作用。絶対にクライアントに渡さない） |
-| `SENDGRID_API_KEY` | サーバーのみ | SendGrid API キー（メール通知用） |
+| `AWS_REGION` | サーバーのみ | AWS SES のリージョン |
+| `AWS_ACCESS_KEY_ID` | サーバーのみ | AWS SES 送信用IAMユーザーのアクセスキー |
+| `AWS_SECRET_ACCESS_KEY` | サーバーのみ | AWS SES 送信用IAMユーザーのシークレットアクセスキー |
+| `AWS_SESSION_TOKEN` | サーバーのみ | 一時クレデンシャル利用時のみ設定 |
+| `SES_FROM_EMAIL` | サーバーのみ | 通知メールのFromアドレス |
+| `NOTIFICATION_EDGE_FUNCTION_URL` | サーバーのみ | 通知メール送信用 Supabase Edge Function URL |
+| `NOTIFICATION_EDGE_FUNCTION_TOKEN` | サーバーのみ | Edge Function 呼び出し用トークン。未設定時は `SUPABASE_SERVICE_ROLE_KEY` を使用 |
 | `NEXT_PUBLIC_APP_URL` | 公開 | アプリのベース URL（メール内リンク生成用。例: `https://mbo.example.com`） |
 
 ---
@@ -321,7 +327,7 @@ Vercel（自動デプロイ）
 | コネクションプール | Supabase PgBouncer内蔵 | Amazon RDS Proxy | 設定変更のみ |
 | 認証 | Supabase Auth（メールOTP認証） | Amazon Cognito | Cognito の Magic Link / OTP に切り替え |
 | ストレージ | Supabase Storage | Amazon S3 | SDK切り替えのみ |
-| メール通知 | SendGrid | Amazon SES | 送信API切り替えのみ |
+| メール通知 | AWS SES | SendGrid | 送信API切り替えのみ |
 
 ### 9.1 AWS本番構成イメージ
 

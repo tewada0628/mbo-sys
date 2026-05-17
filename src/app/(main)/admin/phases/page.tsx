@@ -16,9 +16,6 @@ const PHASE_LABELS: Record<string, string> = {
 
 export default async function AdminPhasesPage() {
   const periods = await prisma.evaluationPeriod.findMany({
-    where: {
-      goalSets: { some: {} } // Only show periods that are actually being used
-    },
     include: {
       phases: {
         orderBy: { startDate: 'asc' }

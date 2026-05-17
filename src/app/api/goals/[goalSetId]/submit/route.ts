@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
+import { createNotification } from '@/lib/notifications';
 import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
@@ -69,12 +70,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
         }
       });
 
-      await tx.notification.create({
-        data: {
-          employeeId: managerId,
-          type: 'APPROVAL_REQUEST',
-          message: `${goalSet.employee.name}さんの目標設定の承認依頼が届いています。`,
-        },
+      await createNotification({
+        employeeId: managerId,
+        type: 'APPROVAL_REQUEST',
+        message: `${goalSet.employee.name}さんの目標設定の承認依頼が届いています。`,
+        sendEmail: true,
+        client: tx,
       });
     });
 

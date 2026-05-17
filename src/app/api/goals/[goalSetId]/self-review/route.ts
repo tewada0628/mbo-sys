@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { selfReviewRequestSchema } from '@/lib/validations/review';
 import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -96,12 +97,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
       }
 
       if (!wasAlreadySubmitted && goalSet.membership.managerId) {
-        await tx.notification.create({
-          data: {
-            employeeId: goalSet.membership.managerId,
-            type: 'SELF_REVIEW_SUBMITTED',
-            message: `${employee.name}さんの自己評価が提出されました。上長評価を入力してください。`,
-          },
+        await createNotification({
+          employeeId: goalSet.membership.managerId,
+          type: 'SELF_REVIEW_SUBMITTED',
+          message: `${employee.name}さんの自己評価が提出されました。上長評価を入力してください。`,
+          sendEmail: true,
+          client: tx,
         });
       }
     });

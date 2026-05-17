@@ -165,7 +165,7 @@ Supabase
 | 認証 | Supabase Auth | システム専用のID・パスワード認証を実装 |
 | ホスティング | Vercel | CI/CD・プレビュー環境込み |
 | ファイルストレージ | Supabase Storage | 将来の添付ファイル対応 |
-| メール通知 | Supabase Edge Functions + SendGrid | トランザクションメール |
+| メール通知 | Supabase Edge Functions + AWS SES | トランザクションメール |
 | CI/CD | GitHub Actions + Vercel | テスト・Lint・デプロイ自動化 |
 
 ### 2.3 ディレクトリ構成
@@ -1232,7 +1232,7 @@ organization_memberships
 | コネクションプール | Supabase PgBouncer内蔵 | Amazon RDS Proxy | 設定変更のみ |
 | 認証 | Supabase Auth（ID・パスワード認証） | Amazon Cognito | メール/社員IDベースの認証へ切り替え |
 | ストレージ | Supabase Storage | Amazon S3 | SDK切り替えのみ |
-| メール通知 | SendGrid | Amazon SES | 送信API切り替えのみ |
+| メール通知 | AWS SES | SendGrid | 送信API切り替えのみ |
 
 ### AWS本番構成イメージ
 
