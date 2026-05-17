@@ -24,6 +24,17 @@ export async function GET() {
       select: { id: true },
     });
 
+    const periods = await prisma.evaluationPeriod.findMany({
+      orderBy: { startDate: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+
     const goalSets = await prisma.goalSet.findMany({
       where: {
         evaluationPeriodId: { in: activePeriods.map((period) => period.id) },
@@ -89,7 +100,16 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ items });
+    return NextResponse.json({
+      periods: periods.map((period) => ({
+        id: period.id,
+        name: period.name,
+        status: period.status,
+        startDate: period.startDate.toISOString().slice(0, 10),
+        endDate: period.endDate.toISOString().slice(0, 10),
+      })),
+      items,
+    });
   } catch (error) {
     console.error('Error fetching evaluations:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

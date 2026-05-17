@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { goalSetSchema } from '@/lib/validations/goal';
+import { canOperateInPhase, EVALUATION_PHASES, getActiveRoles, getCurrentPhase } from '@/lib/phases';
 
 export async function POST(req: Request) {
   try {
@@ -48,6 +49,12 @@ export async function POST(req: Request) {
 
     if (!result.success) {
       return NextResponse.json({ error: 'Invalid input', details: result.error.issues }, { status: 400 });
+    }
+
+    const { roles } = await getActiveRoles(user.email);
+    const currentPhase = await getCurrentPhase(evaluationPeriodId);
+    if (!canOperateInPhase(roles, currentPhase?.phaseType, [EVALUATION_PHASES.GOAL_SETTING])) {
+      return NextResponse.json({ error: '目標設定フェーズ外のため作成できません。' }, { status: 403 });
     }
 
     const membership = employee.memberships.find((item) => item.validTo === null) ?? employee.memberships[0];

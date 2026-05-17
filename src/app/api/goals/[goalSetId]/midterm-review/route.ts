@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
+import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
 
 type MidtermReviewPayload = {
   goalId: string;
@@ -31,6 +32,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
       return NextResponse.json({ error: 'Not authorized to review this goal set' }, { status: 403 });
     }
     const { employee } = access.context;
+
+    const currentPhase = await getCurrentPhase(access.context.goalSet.evaluationPeriodId);
+    if (!canOperateInPhase(access.context.roles, currentPhase?.phaseType, [EVALUATION_PHASES.MIDTERM])) {
+      return NextResponse.json({ error: '中間振り返りフェーズ外のため提出できません。' }, { status: 403 });
+    }
 
     const goalSet = await prisma.goalSet.findUnique({
       where: { id: goalSetId },

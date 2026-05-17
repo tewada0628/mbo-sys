@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { goalSetSchema } from '@/lib/validations/goal';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
+import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -22,6 +23,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const { goalSet } = access.context;
+
+    const currentPhase = await getCurrentPhase(goalSet.evaluationPeriodId);
+    if (!canOperateInPhase(access.context.roles, currentPhase?.phaseType, [EVALUATION_PHASES.GOAL_SETTING])) {
+      return NextResponse.json({ error: '目標設定フェーズ外のため編集できません。' }, { status: 403 });
+    }
 
     const editableStatuses = ['DRAFT', 'REJECTED', 'MEETING_REJECTED'];
     if (!editableStatuses.includes(goalSet.status)) {
