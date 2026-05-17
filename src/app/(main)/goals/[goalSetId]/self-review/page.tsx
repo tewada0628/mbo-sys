@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 import { SelfReviewForm } from '@/components/reviews/SelfReviewForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export default async function SelfReviewPage({ params }: { params: Promise<{ goalSetId: string }> }) {
   const { goalSetId } = await params;
@@ -13,6 +14,11 @@ export default async function SelfReviewPage({ params }: { params: Promise<{ goa
 
   if (!user?.email) {
     redirect('/login');
+  }
+
+  const access = await getGoalSetAccessContext(user.email, goalSetId);
+  if (!access.ok || !access.context.permissions.canView) {
+    redirect('/dashboard');
   }
 
   const goalSet = await prisma.goalSet.findUnique({
@@ -31,7 +37,7 @@ export default async function SelfReviewPage({ params }: { params: Promise<{ goa
     redirect('/dashboard');
   }
 
-  const isOwner = goalSet.employee.email === user.email;
+  const isOwner = access.context.permissions.canSelfReview;
 
   const serializedGoals = goalSet.goals.map((goal) => ({
     id: goal.id,

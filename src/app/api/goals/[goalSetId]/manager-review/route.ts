@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { managerReviewRequestSchema } from '@/lib/validations/review';
-import { canOperateInPhase, EVALUATION_PHASES, getActiveRoles, getCurrentPhase } from '@/lib/phases';
+import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -14,11 +15,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { employee, roles } = await getActiveRoles(user.email);
-
-    if (!employee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    const access = await getGoalSetAccessContext(user.email, goalSetId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.failure.error }, { status: access.failure.status });
     }
+    if (!access.context.permissions.canManagerReview) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const { employee, roles } = access.context;
 
     const goalSet = await prisma.goalSet.findUnique({
       where: { id: goalSetId },
@@ -36,10 +40,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
 
     if (!goalSet) {
       return NextResponse.json({ error: 'Goal set not found' }, { status: 404 });
-    }
-
-    if (goalSet.membership.managerId !== employee.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (goalSet.isEvaluationExempt || !goalSet.isMboTarget) {

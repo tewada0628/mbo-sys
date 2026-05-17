@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 type MidtermReviewPayload = {
   goalId: string;
@@ -18,22 +19,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { email: user.email },
-    });
-
-    if (!employee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    const access = await getGoalSetAccessContext(user.email, goalSetId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.failure.error }, { status: access.failure.status });
     }
+    if (!access.context.permissions.canMidtermReview) {
+      return NextResponse.json({ error: 'Not authorized to review this goal set' }, { status: 403 });
+    }
+    const { employee } = access.context;
 
     const goalSet = await prisma.goalSet.findUnique({
       where: { id: goalSetId },
       include: {
         membership: true,
+        goals: {
+          where: { isCurrent: true },
+          select: { id: true },
+        },
       },
     });
 
@@ -51,6 +57,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
 
     if (!Array.isArray(reviews)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const currentGoalIds = new Set(goalSet.goals.map((goal) => goal.id));
+    const hasInvalidGoal = (reviews as MidtermReviewPayload[]).some((review) => !currentGoalIds.has(review.goalId));
+    if (hasInvalidGoal) {
+      return NextResponse.json({ error: '現在の目標セットに含まれる目標のみ更新できます。' }, { status: 400 });
     }
 
     const now = new Date();

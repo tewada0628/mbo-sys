@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -8,8 +9,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const access = await getGoalSetAccessContext(user.email, goalSetId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.failure.error }, { status: access.failure.status });
+    }
+    if (!access.context.permissions.canSubmit) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const goalSet = await prisma.goalSet.findUnique({

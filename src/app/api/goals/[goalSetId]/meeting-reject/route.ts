@@ -1,16 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
-
-const isDeptManagerOrAdmin = (memberships: { roles: string[]; position: string }[]) => {
-  return memberships.some((membership) => {
-    return (
-      membership.roles.includes('ADMIN') ||
-      membership.roles.includes('HR') ||
-      membership.position === 'DEPT_MANAGER'
-    );
-  });
-};
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -19,7 +10,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -27,32 +18,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
       return NextResponse.json({ error: '差し戻し理由（rejectionNote）は必須です。' }, { status: 400 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { email: user.email },
-      include: {
-        memberships: {
-          where: {
-            validFrom: { lte: new Date() },
-            OR: [
-              { validTo: null },
-              { validTo: { gt: new Date() } },
-            ],
-          },
-          select: {
-            roles: true,
-            position: true,
-          },
-        },
-      },
-    });
-
-    if (!employee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    const access = await getGoalSetAccessContext(user.email, goalSetId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.failure.error }, { status: access.failure.status });
     }
-
-    if (!isDeptManagerOrAdmin(employee.memberships)) {
+    if (!access.context.permissions.canMeetingReject) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    const { employee } = access.context;
 
     const goalSet = await prisma.goalSet.findUnique({
       where: { id: goalSetId },

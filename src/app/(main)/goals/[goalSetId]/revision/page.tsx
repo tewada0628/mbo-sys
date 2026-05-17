@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { GoalForm } from '@/components/goals/GoalForm';
 import { Card, CardContent } from '@/components/ui/card';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export default async function GoalRevisionPage({ params }: { params: Promise<{ goalSetId: string }> }) {
   const { goalSetId } = await params;
@@ -11,6 +12,11 @@ export default async function GoalRevisionPage({ params }: { params: Promise<{ g
 
   if (!user) {
     redirect('/login');
+  }
+
+  const access = await getGoalSetAccessContext(user.email, goalSetId);
+  if (!access.ok || !access.context.permissions.canRevise) {
+    redirect('/dashboard');
   }
 
   const goalSet = await prisma.goalSet.findUnique({
@@ -25,15 +31,6 @@ export default async function GoalRevisionPage({ params }: { params: Promise<{ g
   });
 
   if (!goalSet) {
-    redirect('/dashboard');
-  }
-
-  // Check authorization: only the employee can revise their own goals
-  const employee = await prisma.employee.findUnique({
-    where: { email: user.email! },
-  });
-
-  if (!employee || goalSet.employeeId !== employee.id) {
     redirect('/dashboard');
   }
 
