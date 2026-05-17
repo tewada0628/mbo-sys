@@ -243,11 +243,11 @@
 
 ## テスト
 
-- [ ] `__tests__/unit/lib/score.test.ts` 作成（スコア計算ロジック）
-- [ ] `__tests__/unit/lib/permissions.test.ts` 作成（権限チェックロジック）
-- [ ] `__tests__/unit/components/goals/ApprovalStepIndicator.test.tsx` 作成
-- [ ] `e2e/goal-setting.spec.ts` 作成（目標設定〜APPROVED の E2E）
-- [ ] `e2e/evaluation.spec.ts` 作成（自己評価〜評価確定の E2E）
+- [x] `__tests__/unit/lib/score.test.ts` 作成（スコア計算ロジック）
+- [x] `__tests__/unit/lib/permissions.test.ts` 作成（権限チェックロジック）
+- [x] `__tests__/unit/components/goals/ApprovalStepIndicator.test.tsx` 作成
+- [x] `e2e/goal-setting.spec.ts` 作成（目標設定〜APPROVED の E2E）
+- [x] `e2e/evaluation.spec.ts` 作成（自己評価〜評価確定の E2E）
 
 ---
 
