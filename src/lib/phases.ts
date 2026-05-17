@@ -5,8 +5,10 @@ import { hasAdminPrivilege } from './permissions';
 export const EVALUATION_PHASES = {
   GOAL_SETTING: 'GOAL_SETTING',
   MIDTERM: 'MIDTERM',
+  DEGREE_360: 'DEGREE_360',
   SELF_REVIEW: 'SELF_REVIEW',
   MANAGER_REVIEW: 'MANAGER_REVIEW',
+  ADJUSTMENT: 'ADJUSTMENT',
 } as const satisfies Record<string, PhaseType>;
 
 export const getCurrentPhase = async (evaluationPeriodId: string, at = new Date()) => {
@@ -21,6 +23,10 @@ export const getCurrentPhase = async (evaluationPeriodId: string, at = new Date(
 
 export const canOperateInPhase = (roles: Role[], currentPhase: PhaseType | null | undefined, allowedPhases: PhaseType[]) => {
   if (hasAdminPrivilege(roles)) return true;
+  return !!currentPhase && allowedPhases.includes(currentPhase);
+};
+
+export const isInPhase = (currentPhase: PhaseType | null | undefined, allowedPhases: PhaseType[]) => {
   return !!currentPhase && allowedPhases.includes(currentPhase);
 };
 

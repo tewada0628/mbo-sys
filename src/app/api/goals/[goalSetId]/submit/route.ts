@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
+import { canOperateInPhase, EVALUATION_PHASES, getCurrentPhase } from '@/lib/phases';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -19,6 +20,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
     }
     if (!access.context.permissions.canSubmit) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const currentPhase = await getCurrentPhase(access.context.goalSet.evaluationPeriodId);
+    if (!canOperateInPhase(access.context.roles, currentPhase?.phaseType, [EVALUATION_PHASES.GOAL_SETTING])) {
+      return NextResponse.json({ error: '目標設定フェーズ外のため承認申請できません。' }, { status: 403 });
     }
 
     const goalSet = await prisma.goalSet.findUnique({

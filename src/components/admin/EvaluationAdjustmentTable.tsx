@@ -4,9 +4,20 @@ import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
@@ -35,7 +46,16 @@ type EvaluationItem = {
   confirmedAt: string | null;
 };
 
+type PeriodOption = {
+  id: string;
+  name: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+};
+
 type EvaluationResponse = {
+  periods: PeriodOption[];
   items: EvaluationItem[];
 };
 
@@ -56,6 +76,11 @@ export function EvaluationAdjustmentTable() {
   const [savingGoalSetId, setSavingGoalSetId] = useState<string | null>(null);
   const [grades, setGrades] = useState<Record<string, FinalGrade | 'UNSET'>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [selectedPeriodId, setSelectedPeriodId] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFileName, setImportFileName] = useState('');
+  const [importCsvText, setImportCsvText] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   const rows = useMemo(() => {
     const items = data?.items ?? [];
@@ -65,6 +90,7 @@ export function EvaluationAdjustmentTable() {
       adjustmentNoteDraft: notes[item.goalSetId] ?? item.adjustmentNote ?? '',
     }));
   }, [data?.items, grades, notes]);
+  const activePeriodId = selectedPeriodId || data?.periods.find((period) => period.status === 'ACTIVE')?.id || data?.periods[0]?.id || '';
 
   const handleSave = async (item: EvaluationItem) => {
     const selectedGrade = grades[item.goalSetId] ?? item.finalGrade ?? 'UNSET';
@@ -97,6 +123,42 @@ export function EvaluationAdjustmentTable() {
     }
   };
 
+  const handleImport = async () => {
+    if (!activePeriodId) {
+      alert('評価期を選択してください。');
+      return;
+    }
+    if (!importCsvText.trim()) {
+      alert('CSVファイルを選択してください。');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const res = await fetch('/api/admin/degree360-scores/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evaluationPeriodId: activePeriodId,
+          csvText: importCsvText,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body.error || '360度スコアの取込に失敗しました。');
+      }
+      alert(`360度スコアを取り込みました。新規: ${body.createdCount}件 / 更新: ${body.updatedCount}件`);
+      setImportOpen(false);
+      setImportFileName('');
+      setImportCsvText('');
+      await mutate();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '360度スコアの取込に失敗しました。');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   if (error) {
     return <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">評価データの取得に失敗しました。</div>;
   }
@@ -106,7 +168,58 @@ export function EvaluationAdjustmentTable() {
   }
 
   return (
-    <div className="rounded-lg border bg-white">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-white p-4">
+        <div className="space-y-2">
+          <Label>360度スコア取込対象の評価期</Label>
+          <Select value={activePeriodId} onValueChange={setSelectedPeriodId}>
+            <SelectTrigger className="w-56"><SelectValue placeholder="評価期を選択" /></SelectTrigger>
+            <SelectContent>
+              {data.periods.map((period) => (
+                <SelectItem key={period.id} value={period.id}>{period.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Dialog open={importOpen} onOpenChange={setImportOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Upload className="size-4" />
+              360度スコアCSV取込
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>360度スコアCSV取込</DialogTitle>
+              <DialogDescription>
+                employee_code, achievement_score, credo_score, is_top20_achievement を含むCSVを取り込みます。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>CSVファイル</Label>
+                <Input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    setImportFileName(file.name);
+                    setImportCsvText(await file.text());
+                  }}
+                />
+                {importFileName && <p className="text-xs text-muted-foreground">選択中: {importFileName}</p>}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleImport} disabled={isImporting || !importCsvText.trim()}>
+                {isImporting ? '取込中...' : '取込'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="rounded-lg border bg-white">
       <Table>
         <TableHeader>
           <TableRow>
@@ -201,6 +314,7 @@ export function EvaluationAdjustmentTable() {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
-import { getActiveRoles } from '@/lib/phases';
+import { EVALUATION_PHASES, getActiveRoles, getCurrentPhase, isInPhase } from '@/lib/phases';
 import { hasAdminPrivilege } from '@/lib/permissions';
 import { calculateEvaluationScore } from '@/lib/score';
 import { z } from 'zod';
@@ -51,6 +51,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
 
     if (!goalSet) {
       return NextResponse.json({ error: 'Goal set not found' }, { status: 404 });
+    }
+
+    const currentPhase = await getCurrentPhase(goalSet.evaluationPeriodId);
+    if (!isInPhase(currentPhase?.phaseType, [EVALUATION_PHASES.ADJUSTMENT])) {
+      return NextResponse.json({ error: '評価調整・確定フェーズ外のため確定できません。' }, { status: 403 });
     }
 
     const degree360Score = goalSet.employee.degree360Scores.find((score) => (
