@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { goalSetSchema } from '@/lib/validations/goal';
 import { ApprovalRequestType, ApprovalStatus } from '@prisma/client';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -109,12 +110,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
         }
       });
 
-      await tx.notification.create({
-        data: {
-          employeeId: approverId,
-          type: 'APPROVAL_REQUEST',
-          message: `${employee.name}さんの目標修正の承認依頼が届いています。`,
-        },
+      await createNotification({
+        employeeId: approverId,
+        type: 'APPROVAL_REQUEST',
+        message: `${employee.name}さんの目標修正の承認依頼が届いています。`,
+        sendEmail: true,
+        client: tx,
       });
 
       // goal_sets.status remains APPROVED while a revision is being approved.

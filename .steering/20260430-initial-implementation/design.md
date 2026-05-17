@@ -683,4 +683,7 @@ GET    /api/admin/audit-logs                   監査ログ一覧取得（HR/ADM
 | `DATABASE_URL` | PostgreSQL 接続文字列（Prisma用） | `.env.local` / Vercel |
 | `DIRECT_URL` | PostgreSQL 直接接続URL（マイグレーション用） | `.env.local` |
 | `NEXT_PUBLIC_APP_URL` | アプリのベースURL（メール通知のリンク生成用） | `.env.local` / Vercel |
-| `SENDGRID_API_KEY` | SendGrid APIキー（Edge Function用） | Supabase Secrets |
+| `AWS_REGION` | AWS SES のリージョン | Supabase Secrets |
+| `AWS_ACCESS_KEY_ID` | AWS SES 送信用IAMユーザーのアクセスキー | Supabase Secrets |
+| `AWS_SECRET_ACCESS_KEY` | AWS SES 送信用IAMユーザーのシークレットアクセスキー | Supabase Secrets |
+| `SES_FROM_EMAIL` | AWS SES で検証済みの送信元メールアドレス | Supabase Secrets |

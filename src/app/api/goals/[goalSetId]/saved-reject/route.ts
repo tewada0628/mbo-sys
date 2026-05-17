@@ -23,36 +23,50 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
     if (!access.ok) {
       return NextResponse.json({ error: access.failure.error }, { status: access.failure.status });
     }
-    if (!access.context.permissions.canMeetingReject) {
+    if (!access.context.permissions.canSavedReject) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    const { employee } = access.context;
 
     const goalSet = await prisma.goalSet.findUnique({
       where: { id: goalSetId },
-      include: { membership: true },
+      select: {
+        id: true,
+        employeeId: true,
+        status: true,
+        isMboTarget: true,
+        isEvaluationExempt: true,
+        membership: {
+          select: {
+            grade: true,
+            employeeType: true,
+          },
+        },
+      },
     });
 
     if (!goalSet) {
       return NextResponse.json({ error: 'Goal set not found' }, { status: 404 });
     }
 
-    if (goalSet.status !== 'APPROVED') {
-      return NextResponse.json({ error: 'Can only meeting-reject from APPROVED status' }, { status: 409 });
+    const isExemptByMembership = goalSet.membership.employeeType !== 'REGULAR' || goalSet.membership.grade <= 2;
+    const isExemptGoalSet = goalSet.isEvaluationExempt || !goalSet.isMboTarget || isExemptByMembership;
+
+    if (goalSet.status !== 'SAVED' || !isExemptGoalSet) {
+      return NextResponse.json({ error: '保存済みの申請対象外目標のみ修正依頼できます。' }, { status: 409 });
     }
 
     await prisma.$transaction(async (tx) => {
       await tx.goalSet.update({
         where: { id: goalSet.id },
-        data: { status: 'MEETING_REJECTED' },
+        data: { status: 'REJECTED' },
       });
 
       await tx.approvalRequest.create({
         data: {
           requestType: 'MEETING_REJECTION',
           goalSetId: goalSet.id,
-          requesterId: employee.id,
-          approverId: employee.id,
+          requesterId: access.context.employee.id,
+          approverId: access.context.employee.id,
           status: 'REJECTED',
           rejectionNote: rejectionNote.trim(),
           resolvedAt: new Date(),
@@ -61,26 +75,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
 
       await createNotification({
         employeeId: goalSet.employeeId,
-        type: 'MEETING_REJECTED',
-        message: '難易度調整のため、承認済み目標が差し戻されました。差し戻し理由を確認してください。',
+        type: 'SAVED_GOAL_REJECTED',
+        message: '保存済み目標に上長から修正依頼が届いています。理由を確認して修正してください。',
         sendEmail: true,
         client: tx,
       });
-
-      if (goalSet.membership.managerId && goalSet.membership.managerId !== goalSet.employeeId) {
-        await createNotification({
-          employeeId: goalSet.membership.managerId,
-          type: 'MEETING_REJECTED',
-          message: '担当社員の承認済み目標が最終承認後に差し戻されました。',
-          sendEmail: true,
-          client: tx,
-        });
-      }
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error rejecting goal set:', error);
+    console.error('Error rejecting saved goal set:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

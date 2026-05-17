@@ -14,6 +14,7 @@ import {
   Calendar,
   Building2,
   UserCog,
+  Bell,
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { hasAdminPrivilege, isManager } from '@/lib/permissions';
@@ -31,6 +32,12 @@ const navItems: NavItem[] = [
     href: '/dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
     visible: () => true, // Everyone sees this
+  },
+  {
+    label: '通知',
+    href: '/notifications',
+    icon: <Bell className="h-5 w-5" />,
+    visible: () => true,
   },
   {
     label: '目標設定・評価',

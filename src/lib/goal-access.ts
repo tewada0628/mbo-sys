@@ -26,6 +26,8 @@ type AccessGoalSet = {
   membership: {
     id: string;
     organizationSnapshotId: string;
+    grade: number;
+    employeeType: string;
     managerId: string | null;
     divisionManagerId: string | null;
     executiveId: string | null;
@@ -48,6 +50,7 @@ export type GoalSetAccessContext = {
     canSelfReview: boolean;
     canManagerReview: boolean;
     canMeetingReject: boolean;
+    canSavedReject: boolean;
   };
 };
 
@@ -107,6 +110,8 @@ export async function getGoalSetAccessContext(email: string | null | undefined, 
           select: {
             id: true,
             organizationSnapshotId: true,
+            grade: true,
+            employeeType: true,
             managerId: true,
             divisionManagerId: true,
             executiveId: true,
@@ -149,7 +154,8 @@ export async function getGoalSetAccessContext(email: string | null | undefined, 
   ));
 
   const canMeetingReject = admin || isDepartmentRejector || hasDeptManagerPositionInSameOrg;
-  const canView = admin || isOwner || isApprovalChainMember || isPendingApprover || isSameOrganizationManager || canMeetingReject;
+  const canSavedReject = admin || isApprovalChainMember || isSameOrganizationManager;
+  const canView = admin || isOwner || isApprovalChainMember || isPendingApprover || isSameOrganizationManager || canMeetingReject || canSavedReject;
 
   return {
     ok: true,
@@ -166,6 +172,7 @@ export async function getGoalSetAccessContext(email: string | null | undefined, 
         canSelfReview: isOwner,
         canManagerReview: isDirectManager,
         canMeetingReject,
+        canSavedReject,
       },
     },
   };

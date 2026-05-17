@@ -6,6 +6,7 @@ import { ApprovalStepIndicator } from '@/components/goals/ApprovalStepIndicator'
 import { GoalVersionHistory } from '@/components/goals/GoalVersionHistory';
 import { GoalApprovalActions } from '@/components/goals/GoalApprovalActions';
 import { MeetingRejectAction } from '@/components/goals/MeetingRejectAction';
+import { SavedGoalRejectAction } from '@/components/goals/SavedGoalRejectAction';
 import { MidtermReviewForm } from '@/components/reviews/MidtermReviewForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GoalVisibilityBadge } from '@/components/goals/GoalVisibilityBadge';
@@ -134,6 +135,12 @@ export default async function GoalDetailPage({
     !pendingRevision &&
     access.context.permissions.canMeetingReject,
   );
+  const canSavedReject = Boolean(
+    currentEmployee &&
+    goalSet.status === 'SAVED' &&
+    (goalSet.isEvaluationExempt || !goalSet.isMboTarget || goalSet.membership.employeeType !== 'REGULAR' || goalSet.membership.grade <= 2) &&
+    access.context.permissions.canSavedReject,
+  );
 
   // Format initialData for GoalForm
   const initialData = {
@@ -210,6 +217,9 @@ export default async function GoalDetailPage({
           {canMeetingReject && (
             <MeetingRejectAction goalSetId={goalSet.id} employeeName={goalSet.employee.name} />
           )}
+          {canSavedReject && (
+            <SavedGoalRejectAction goalSetId={goalSet.id} employeeName={goalSet.employee.name} />
+          )}
         </div>
       </div>
 
@@ -238,7 +248,8 @@ export default async function GoalDetailPage({
         <Alert variant="destructive">
           <AlertTitle>差し戻し通知</AlertTitle>
           <AlertDescription>
-            目標内容が差し戻されました。以下の理由を確認し、修正して再申請してください。
+            目標内容が差し戻されました。以下の理由を確認し、
+            {goalSet.isEvaluationExempt || !goalSet.isMboTarget ? '修正して保存してください。' : '修正して再申請してください。'}
             <div className="mt-2 p-2 bg-destructive/10 rounded border border-destructive/20 font-medium text-sm">
               差し戻し理由: {lastRejectedRequest.rejectionNote}
             </div>

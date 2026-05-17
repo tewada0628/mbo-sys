@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(req: Request, { params }: { params: Promise<{ requestId: string }> }) {
   try {
@@ -68,12 +69,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
       });
 
       // 3. Notify requester
-      await tx.notification.create({
-        data: {
-          employeeId: request.requesterId,
-          type: 'APPROVAL_REJECTED',
-          message: '目標設定が差し戻されました。理由を確認して修正してください。',
-        },
+      await createNotification({
+        employeeId: request.requesterId,
+        type: 'APPROVAL_REJECTED',
+        message: '目標設定が差し戻されました。理由を確認して修正してください。',
+        sendEmail: true,
+        client: tx,
       });
     });
 

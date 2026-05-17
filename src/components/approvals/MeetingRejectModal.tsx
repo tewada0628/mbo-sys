@@ -19,6 +19,10 @@ interface MeetingRejectModalProps {
   onSubmit: (note: string) => Promise<void>;
   isSubmitting: boolean;
   employeeName: string;
+  title?: string;
+  description?: string;
+  noteLabel?: string;
+  submitLabel?: string;
 }
 
 export function MeetingRejectModal({
@@ -27,13 +31,17 @@ export function MeetingRejectModal({
   onSubmit,
   isSubmitting,
   employeeName,
+  title = '最終承認後の差し戻し',
+  description,
+  noteLabel = '差し戻し理由（必須）',
+  submitLabel = '差し戻しを実行',
 }: MeetingRejectModalProps) {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     if (!note.trim()) {
-      setError('差し戻し理由（評価会議での決定事項など）は必須です。');
+      setError('差し戻し理由は必須です。');
       return;
     }
     setError('');
@@ -52,18 +60,22 @@ export function MeetingRejectModal({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-destructive">
-            最終承認後の差し戻し
+            {title}
           </DialogTitle>
           <DialogDescription>
-            評価会議等での決定により、{employeeName}さんの承認済み目標を差し戻します。
-            この操作により、目標ステータスは「最終承認後差し戻し」となり、社員に通知されます。
+            {description ?? (
+              <>
+                評価会議等での決定により、{employeeName}さんの承認済み目標を差し戻します。
+                この操作により、目標ステータスは「最終承認後差し戻し」となり、社員に通知されます。
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="note" className="text-destructive font-semibold">
-              差し戻し理由（必須）
+              {noteLabel}
             </Label>
             <Textarea
               id="note"
@@ -86,7 +98,7 @@ export function MeetingRejectModal({
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? '処理中...' : '差し戻しを実行'}
+            {isSubmitting ? '処理中...' : submitLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
