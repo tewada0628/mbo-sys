@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { goalSetSchema } from '@/lib/validations/goal';
 import { ApprovalRequestType, ApprovalStatus } from '@prisma/client';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -10,22 +11,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { email: user.email! },
-      include: {
-        memberships: {
-          where: { validTo: null }
-        }
-      }
-    });
-
-    if (!employee) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    const access = await getGoalSetAccessContext(user.email, goalSetId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.failure.error }, { status: access.failure.status });
     }
+    if (!access.context.permissions.canRevise) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const { employee } = access.context;
 
     const body = await req.json();
     const result = goalSetSchema.safeParse(body);
@@ -49,10 +46,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
 
     if (!goalSet) {
       return NextResponse.json({ error: 'Goal set not found' }, { status: 404 });
-    }
-
-    if (goalSet.employeeId !== employee.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (goalSet.status !== 'APPROVED') {

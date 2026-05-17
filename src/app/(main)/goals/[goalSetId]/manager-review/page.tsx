@@ -5,6 +5,7 @@ import prisma from '@/lib/db';
 import { ManagerReviewForm } from '@/components/reviews/ManagerReviewForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 
 export default async function ManagerReviewPage({ params }: { params: Promise<{ goalSetId: string }> }) {
   const { goalSetId } = await params;
@@ -15,12 +16,9 @@ export default async function ManagerReviewPage({ params }: { params: Promise<{ 
     redirect('/login');
   }
 
-  const currentEmployee = await prisma.employee.findUnique({
-    where: { email: user.email },
-  });
-
-  if (!currentEmployee) {
-    redirect('/login');
+  const access = await getGoalSetAccessContext(user.email, goalSetId);
+  if (!access.ok || !access.context.permissions.canView) {
+    redirect('/dashboard');
   }
 
   const goalSet = await prisma.goalSet.findUnique({
@@ -43,7 +41,7 @@ export default async function ManagerReviewPage({ params }: { params: Promise<{ 
     redirect('/dashboard');
   }
 
-  const isManager = goalSet.membership.managerId === currentEmployee.id;
+  const isManager = access.context.permissions.canManagerReview;
   const isLocked = !goalSet.goals.every((goal) => goal.selfReview?.submittedAt);
 
   const serializedGoals = goalSet.goals.map((goal) => ({

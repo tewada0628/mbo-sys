@@ -16,6 +16,7 @@ import { Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { getGoalSetAccessContext } from '@/lib/goal-access';
 export const revalidate = 0;
 
 const REVISION_REASON_LABELS: Record<string, string> = {
@@ -51,20 +52,11 @@ export default async function GoalDetailPage({
     redirect('/login');
   }
 
-  const currentEmployee = await prisma.employee.findUnique({
-    where: { email: user.email },
-    include: {
-      memberships: {
-        where: {
-          validFrom: { lte: new Date() },
-          OR: [
-            { validTo: null },
-            { validTo: { gt: new Date() } },
-          ],
-        },
-      },
-    },
-  });
+  const access = await getGoalSetAccessContext(user.email, goalSetId);
+  if (!access.ok || !access.context.permissions.canView) {
+    redirect('/dashboard');
+  }
+  const currentEmployee = access.context.employee;
 
   const goalSet = await prisma.goalSet.findUnique({
     where: { id: goalSetId },
@@ -134,18 +126,13 @@ export default async function GoalDetailPage({
   const oldGoals = goalSet.goals.filter(g => !g.isCurrent && (!pendingRevision || g.version < maxVersion) && (!rejectedRevision || g.version < maxVersion));
   
   const isOwner = goalSet.employee.email === user.email;
-  // Simplification for RBAC for now: assume we can edit if it's not approved and we are the owner
   const canEdit = isOwner && ['DRAFT', 'REJECTED', 'MEETING_REJECTED'].includes(goalSet.status);
   const isApproved = goalSet.status === 'APPROVED' || !!pendingRevision;
   const canMeetingReject = Boolean(
     currentEmployee &&
     goalSet.status === 'APPROVED' &&
     !pendingRevision &&
-    currentEmployee.memberships.some((membership) => (
-      membership.roles.includes('ADMIN') ||
-      membership.roles.includes('HR') ||
-      membership.position === 'DEPT_MANAGER'
-    )),
+    access.context.permissions.canMeetingReject,
   );
 
   // Format initialData for GoalForm
