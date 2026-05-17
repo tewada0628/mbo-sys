@@ -16,9 +16,10 @@ interface GoalCardProps {
   } | null;
   hasRejectedRevision?: boolean;
   isRevisionPending?: boolean;
+  createHref?: string;
 }
 
-export function GoalCard({ goalSet, hasRejectedRevision, isRevisionPending }: GoalCardProps) {
+export function GoalCard({ goalSet, hasRejectedRevision, isRevisionPending, createHref = '/goals/new' }: GoalCardProps) {
   if (!goalSet) {
     return (
       <Card>
@@ -33,7 +34,7 @@ export function GoalCard({ goalSet, hasRejectedRevision, isRevisionPending }: Go
             <FileText className="h-10 w-10 text-gray-300 mb-3" />
             <p className="text-sm text-gray-500 mb-4">目標がまだ設定されていません</p>
             <Link 
-              href="/goals/new"
+              href={createHref}
               className="inline-flex h-9 items-center justify-center rounded-md bg-[#01AEBB] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#01AEBB]/90"
             >
               目標を設定する

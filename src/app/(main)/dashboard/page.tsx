@@ -47,6 +47,10 @@ export default async function DashboardPage() {
     MANAGER_REVIEW: '上長評価',
     ADJUSTMENT: '評価調整・確定',
   };
+  const goalSettingPhase = currentPhases.find((phase) => phase.phaseType === 'GOAL_SETTING');
+  const newGoalHref = goalSettingPhase
+    ? `/goals/new?evaluationPeriodId=${goalSettingPhase.evaluationPeriodId}`
+    : '/goals/new';
 
   // 2. Get User's Goal Sets for all active periods
   const goalSets = await prisma.goalSet.findMany({
@@ -203,7 +207,7 @@ export default async function DashboardPage() {
         actionItems.push({
           title: `[${phase.periodName}] 目標設定の入力`,
           desc: '今期の目標を設定して申請してください',
-          link: periodGoalSet ? `/goals/${periodGoalSet.id}` : '/goals/new',
+          link: periodGoalSet ? `/goals/${periodGoalSet.id}` : `/goals/new?evaluationPeriodId=${phase.evaluationPeriodId}`,
           icon: AlertCircle,
           color: 'text-red-600 bg-red-50 border-red-200'
         });
@@ -286,9 +290,10 @@ export default async function DashboardPage() {
               }} 
               hasRejectedRevision={primaryGoalSetFlags.hasRejectedRevision}
               isRevisionPending={primaryGoalSetFlags.isRevisionPending}
+              createHref={newGoalHref}
             />
           ) : (
-            <GoalCard goalSet={null} hasRejectedRevision={false} isRevisionPending={false} />
+            <GoalCard goalSet={null} hasRejectedRevision={false} isRevisionPending={false} createHref={newGoalHref} />
           )}
         </div>
 
