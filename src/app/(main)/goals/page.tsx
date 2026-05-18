@@ -111,6 +111,7 @@ export default async function SubordinateGoalsPage() {
 
     return {
       id: goalSet.id,
+      employeeId: goalSet.employee.id,
       employeeName: goalSet.employee.name,
       employeeCode: goalSet.employee.employeeCode,
       organizationName: goalSet.membership.organizationSnapshot.name,

@@ -2,6 +2,7 @@
 
 import type { GoalSetStatus } from '@prisma/client';
 import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ApprovalStepIndicator } from '@/components/goals/ApprovalStepIndicator';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils';
 
 export type GoalSetListRow = {
   id: string;
+  employeeId?: string;
   employeeName: string;
   employeeCode: string;
   organizationName: string;
@@ -104,7 +106,17 @@ export function GoalSetListTable({ rows }: { rows: GoalSetListRow[] }) {
               }}
             >
               <TableCell className="px-4">
-                <div className="font-medium text-foreground">{row.employeeName}</div>
+                {row.employeeId ? (
+                  <Link
+                    href={`/employees/${row.employeeId}`}
+                    className="font-medium text-foreground hover:text-[#01AEBB] hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {row.employeeName}
+                  </Link>
+                ) : (
+                  <div className="font-medium text-foreground">{row.employeeName}</div>
+                )}
                 <div className="text-xs text-muted-foreground">{row.employeeCode}</div>
               </TableCell>
               <TableCell>
