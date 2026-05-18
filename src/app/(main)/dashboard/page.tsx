@@ -15,27 +15,23 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const employee = await prisma.employee.findUnique({
-    where: { email: user.email },
-  });
+  // employee lookup and active periods are independent — run in parallel
+  const [employee, activePeriods] = await Promise.all([
+    prisma.employee.findUnique({ where: { email: user.email } }),
+    prisma.evaluationPeriod.findMany({
+      where: { status: 'ACTIVE' },
+      include: { phases: { orderBy: { startDate: 'asc' } } },
+    }),
+  ]);
 
   if (!employee) {
     return <div>従業員情報が見つかりません。</div>;
   }
 
-  // 1. Get ALL Active Evaluation Periods & Phases
-  const activePeriods = await prisma.evaluationPeriod.findMany({
-    where: { status: 'ACTIVE' },
-    include: {
-      phases: {
-        orderBy: { startDate: 'asc' },
-      },
-    },
-  });
-
   const now = new Date();
-  const currentPhases = activePeriods.flatMap(period => 
-    period.phases.filter(p => p.startDate <= now && p.endDate >= now)
+  const currentPhases = activePeriods.flatMap(period =>
+    period.phases
+      .filter(p => p.startDate <= now && p.endDate >= now)
       .map(p => ({ ...p, periodName: period.name }))
   );
 
@@ -52,11 +48,12 @@ export default async function DashboardPage() {
     ? `/goals/new?evaluationPeriodId=${goalSettingPhase.evaluationPeriodId}`
     : '/goals/new';
 
-  // 2. Get User's Goal Sets for all active periods
+  const activePeriodIds = activePeriods.map(p => p.id);
+
   const goalSets = await prisma.goalSet.findMany({
-    where: { 
+    where: {
       employeeId: employee.id,
-      evaluationPeriodId: { in: activePeriods.map(p => p.id) },
+      evaluationPeriodId: { in: activePeriodIds },
       isActive: true,
     },
     include: {
@@ -70,55 +67,90 @@ export default async function DashboardPage() {
         },
       },
       evaluationPeriod: true,
-    }
+    },
   });
-  
-  // 3. Action Items Logic
-  const actionItems: { title: string; desc: string; link: string; icon: LucideIcon; color: string }[] = [];
-  
-  let primaryGoalSetFlags = {
-    hasRejectedRevision: false,
-    isRevisionPending: false
-  };
 
-  // Check for rejections/actions for each goal set
+  const goalSetIds = goalSets.map(gs => gs.id);
+
+  // Fetch all needed data in parallel — replaces sequential awaits
+  const [allApprovalRequests, pendingApprovals, subordinateGoalSetsForReview] = await Promise.all([
+    goalSetIds.length > 0
+      ? prisma.approvalRequest.findMany({
+          where: {
+            goalSetId: { in: goalSetIds },
+            OR: [
+              { status: 'REJECTED', requestType: 'GOAL_REVISION' },
+              { status: 'APPROVED', requestType: 'GOAL_REVISION' },
+              { status: 'PENDING' },
+            ],
+          },
+          select: {
+            goalSetId: true,
+            status: true,
+            requestType: true,
+            resolvedAt: true,
+            requestedAt: true,
+          },
+        })
+      : Promise.resolve([]),
+    prisma.approvalRequest.count({
+      where: { approverId: employee.id, status: 'PENDING' },
+    }),
+    prisma.goalSet.findMany({
+      where: {
+        evaluationPeriodId: { in: activePeriodIds },
+        isActive: true,
+        status: 'APPROVED',
+        membership: { managerId: employee.id },
+      },
+      include: {
+        goals: {
+          where: { isCurrent: true },
+          include: { selfReview: true, managerReview: true },
+        },
+      },
+    }),
+  ]);
+
+  // Group approval requests by goalSetId in-memory (eliminates N+1 loop)
+  type ApprovalReq = (typeof allApprovalRequests)[0];
+  const requestsByGoalSet = new Map<string, ApprovalReq[]>(goalSetIds.map(id => [id, []]));
+  for (const req of allApprovalRequests) requestsByGoalSet.get(req.goalSetId)?.push(req);
+
+  const latestByResolved = (reqs: ApprovalReq[]) =>
+    reqs.sort((a, b) => (b.resolvedAt?.getTime() ?? 0) - (a.resolvedAt?.getTime() ?? 0))[0] ?? null;
+
+  const actionItems: { title: string; desc: string; link: string; icon: LucideIcon; color: string }[] = [];
+  let primaryGoalSetFlags = { hasRejectedRevision: false, isRevisionPending: false };
+
   for (let i = 0; i < goalSets.length; i++) {
     const gs = goalSets[i];
-    const lastRejectedRevision = await prisma.approvalRequest.findFirst({
-      where: {
-        goalSetId: gs.id,
-        status: 'REJECTED',
-        requestType: 'GOAL_REVISION'
-      },
-      orderBy: { resolvedAt: 'desc' }
-    });
+    const reqs = requestsByGoalSet.get(gs.id) ?? [];
 
-    const lastApprovedRevision = await prisma.approvalRequest.findFirst({
-      where: {
-        goalSetId: gs.id,
-        status: 'APPROVED',
-        requestType: 'GOAL_REVISION'
-      },
-      orderBy: { resolvedAt: 'desc' }
-    });
-
-    const pendingRequest = await prisma.approvalRequest.findFirst({
-      where: {
-        goalSetId: gs.id,
-        status: 'PENDING'
-      },
-      orderBy: { requestedAt: 'desc' }
-    });
+    const lastRejectedRevision = latestByResolved(
+      reqs.filter(r => r.status === 'REJECTED' && r.requestType === 'GOAL_REVISION'),
+    );
+    const lastApprovedRevision = latestByResolved(
+      reqs.filter(r => r.status === 'APPROVED' && r.requestType === 'GOAL_REVISION'),
+    );
+    const pendingRequest =
+      reqs
+        .filter(r => r.status === 'PENDING')
+        .sort((a, b) => b.requestedAt.getTime() - a.requestedAt.getTime())[0] ?? null;
 
     const hasRejectedRevision = !!(
-      lastRejectedRevision && 
-      (!lastApprovedRevision || (lastRejectedRevision.resolvedAt && lastApprovedRevision.resolvedAt && lastRejectedRevision.resolvedAt > lastApprovedRevision.resolvedAt)) &&
-      (!pendingRequest || (lastRejectedRevision.resolvedAt && pendingRequest.requestedAt && lastRejectedRevision.resolvedAt > pendingRequest.requestedAt))
+      lastRejectedRevision &&
+      (!lastApprovedRevision ||
+        (lastRejectedRevision.resolvedAt &&
+          lastApprovedRevision.resolvedAt &&
+          lastRejectedRevision.resolvedAt > lastApprovedRevision.resolvedAt)) &&
+      (!pendingRequest ||
+        (lastRejectedRevision.resolvedAt &&
+          pendingRequest.requestedAt &&
+          lastRejectedRevision.resolvedAt > pendingRequest.requestedAt))
     );
-
     const isRevisionPending = !!(pendingRequest && pendingRequest.requestType === 'GOAL_REVISION');
 
-    // For the primary (first) goal set, store flags for the GoalCard
     if (i === 0) {
       primaryGoalSetFlags = { hasRejectedRevision, isRevisionPending };
     }
@@ -129,7 +161,7 @@ export default async function DashboardPage() {
         desc: '目標修正申請が差し戻されました。内容を確認して再申請してください。',
         link: `/goals/${gs.id}`,
         icon: AlertCircle,
-        color: 'text-red-600 bg-red-50 border-red-200'
+        color: 'text-red-600 bg-red-50 border-red-200',
       });
     } else if (gs.status === 'REJECTED' || gs.status === 'MEETING_REJECTED') {
       actionItems.push({
@@ -137,18 +169,10 @@ export default async function DashboardPage() {
         desc: '目標設定が差し戻されました。理由を確認して再申請してください。',
         link: `/goals/${gs.id}`,
         icon: AlertCircle,
-        color: 'text-red-600 bg-red-50 border-red-200'
+        color: 'text-red-600 bg-red-50 border-red-200',
       });
     }
   }
-
-  // 3-1. Pending Approvals (Manager/Approver role)
-  const pendingApprovals = await prisma.approvalRequest.count({
-    where: {
-      approverId: employee.id,
-      status: 'PENDING'
-    }
-  });
 
   if (pendingApprovals > 0) {
     actionItems.push({
@@ -156,32 +180,11 @@ export default async function DashboardPage() {
       desc: `${pendingApprovals}件の申請が承認待ちです`,
       link: '/approvals',
       icon: Clock,
-      color: 'text-amber-600 bg-amber-50 border-amber-200'
+      color: 'text-amber-600 bg-amber-50 border-amber-200',
     });
   }
 
-  // 3-2. Subordinate self reviews that are ready for manager review
-  const subordinateGoalSetsReadyForManagerReview = await prisma.goalSet.findMany({
-    where: {
-      evaluationPeriodId: { in: activePeriods.map(p => p.id) },
-      isActive: true,
-      status: 'APPROVED',
-      membership: {
-        managerId: employee.id,
-      },
-    },
-    include: {
-      goals: {
-        where: { isCurrent: true },
-        include: {
-          selfReview: true,
-          managerReview: true,
-        },
-      },
-    },
-  });
-
-  const pendingManagerReviewCount = subordinateGoalSetsReadyForManagerReview.filter((goalSet) => {
+  const pendingManagerReviewCount = subordinateGoalSetsForReview.filter((goalSet) => {
     const hasAllSelfReviews = goalSet.goals.every((goal) => goal.selfReview?.submittedAt);
     const hasAllManagerReviews = goalSet.goals.every((goal) => goal.managerReview?.submittedAt);
     return hasAllSelfReviews && !hasAllManagerReviews;
@@ -193,44 +196,43 @@ export default async function DashboardPage() {
       desc: `${pendingManagerReviewCount}件の上長評価を入力できます`,
       link: '/goals',
       icon: CheckSquare,
-      color: 'text-purple-700 bg-purple-50 border-purple-200'
+      color: 'text-purple-700 bg-purple-50 border-purple-200',
     });
   }
 
-  // 3-3. User action items based on Phase(s)
   for (const phase of currentPhases) {
     const periodGoalSet = goalSets.find(gs => gs.evaluationPeriodId === phase.evaluationPeriodId);
     const isReviewTarget = !!periodGoalSet && periodGoalSet.isMboTarget && !periodGoalSet.isEvaluationExempt;
-    
-    // Goal Setting Phase
-    if (phase.phaseType === 'GOAL_SETTING') {
-      const needsGoalInput = !periodGoalSet || periodGoalSet.status === 'DRAFT' || (
-        periodGoalSet.status === 'SAVED' && isReviewTarget
-      );
 
+    if (phase.phaseType === 'GOAL_SETTING') {
+      const needsGoalInput =
+        !periodGoalSet ||
+        periodGoalSet.status === 'DRAFT' ||
+        (periodGoalSet.status === 'SAVED' && isReviewTarget);
       if (needsGoalInput) {
         actionItems.push({
           title: `[${phase.periodName}] 目標設定の入力`,
           desc: '今期の目標を設定して申請してください',
-          link: periodGoalSet ? `/goals/${periodGoalSet.id}` : `/goals/new?evaluationPeriodId=${phase.evaluationPeriodId}`,
+          link: periodGoalSet
+            ? `/goals/${periodGoalSet.id}`
+            : `/goals/new?evaluationPeriodId=${phase.evaluationPeriodId}`,
           icon: AlertCircle,
-          color: 'text-red-600 bg-red-50 border-red-200'
+          color: 'text-red-600 bg-red-50 border-red-200',
         });
       }
     }
-    
-    // Midterm Phase (Check revision request)
+
     if (phase.phaseType === 'MIDTERM') {
       const hasMidtermRevisionRequest = periodGoalSet?.goals.some(g => g.midtermReview?.revisionRequested);
       const isMidtermSubmitted = periodGoalSet?.goals.every(g => g.midtermReview?.employeeSubmittedAt);
-      
+
       if (hasMidtermRevisionRequest) {
         actionItems.push({
           title: `[${phase.periodName}] 中間修正の依頼あり`,
           desc: '上長から目標の修正依頼が届いています。内容を確認して修正してください',
           link: `/goals/${periodGoalSet?.id}`,
           icon: AlertCircle,
-          color: 'text-red-600 bg-red-50 border-red-200'
+          color: 'text-red-600 bg-red-50 border-red-200',
         });
       } else if (isReviewTarget && !isMidtermSubmitted) {
         actionItems.push({
@@ -238,34 +240,30 @@ export default async function DashboardPage() {
           desc: '中間振り返りを入力してください',
           link: periodGoalSet ? `/goals/${periodGoalSet.id}` : '/',
           icon: Calendar,
-          color: 'text-blue-600 bg-blue-50 border-blue-200'
+          color: 'text-blue-600 bg-blue-50 border-blue-200',
         });
       }
     }
 
-    // Self Review Phase
     if (phase.phaseType === 'SELF_REVIEW') {
       const isSelfReviewSubmitted = periodGoalSet?.goals.every(g => g.selfReview?.submittedAt);
-
       if (isReviewTarget && !isSelfReviewSubmitted) {
         actionItems.push({
           title: `[${phase.periodName}] 自己評価の入力`,
           desc: '期末の自己評価を入力してください',
           link: `/goals/${periodGoalSet.id}/self-review`,
           icon: CheckSquare,
-          color: 'text-[#01AEBB] bg-[#01AEBB]/10 border-[#01AEBB]/20'
+          color: 'text-[#01AEBB] bg-[#01AEBB]/10 border-[#01AEBB]/20',
         });
       }
     }
-
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">ダッシュボード</h2>
-        
-        {/* 現在フェーズ表示 */}
+
         <div className="flex flex-wrap gap-2">
           {currentPhases.map((phase, i) => (
             <div key={i} className="flex items-center gap-2 rounded-full border bg-white px-4 py-1.5 shadow-sm">
@@ -280,29 +278,32 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* 自分の目標サマリ */}
         <div>
           {goalSets.length > 0 ? (
-            <GoalCard 
+            <GoalCard
               goalSet={{
                 id: goalSets[0].id,
                 status: goalSets[0].status,
                 goals: goalSets[0].goals.map(g => ({
                   id: g.id,
                   title: g.title,
-                  weight: Number(g.weight)
-                }))
-              }} 
+                  weight: Number(g.weight),
+                })),
+              }}
               hasRejectedRevision={primaryGoalSetFlags.hasRejectedRevision}
               isRevisionPending={primaryGoalSetFlags.isRevisionPending}
               createHref={newGoalHref}
             />
           ) : (
-            <GoalCard goalSet={null} hasRejectedRevision={false} isRevisionPending={false} createHref={newGoalHref} />
+            <GoalCard
+              goalSet={null}
+              hasRejectedRevision={false}
+              isRevisionPending={false}
+              createHref={newGoalHref}
+            />
           )}
         </div>
 
-        {/* 対応事項リスト */}
         <div>
           <Card className="h-full">
             <CardHeader>
@@ -333,7 +334,7 @@ export default async function DashboardPage() {
                           </div>
                         </div>
                       </Link>
-                    )
+                    );
                   })}
                 </div>
               ) : (
