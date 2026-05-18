@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { EVALUATION_PHASES, getActiveRoles, getCurrentPhase, isInPhase } from '@/lib/phases';
 import { hasAdminPrivilege } from '@/lib/permissions';
 import { calculateEvaluationScore } from '@/lib/score';
+import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit';
 import { z } from 'zod';
 
 const evaluationUpdateSchema = z.object({
@@ -46,6 +47,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
           where: { isCurrent: true },
           include: { managerReview: true },
         },
+        finalEvaluation: { select: { finalGrade: true } },
       },
     });
 
@@ -100,6 +102,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ goalSe
         adjustmentNote: result.data.adjustmentNote,
         confirmedBy: employee.id,
         confirmedAt: new Date(),
+      },
+    });
+
+    await createAuditLog({
+      actorId: employee.id,
+      action: AUDIT_ACTIONS.EVALUATION_CONFIRMED,
+      targetType: 'GOAL_SET',
+      targetId: goalSet.id,
+      beforeValue: { finalGrade: goalSet.finalEvaluation?.finalGrade ?? null },
+      afterValue: {
+        finalGrade: result.data.finalGrade,
+        totalScore: Number(preview.totalScore),
+        mboScore: Number(preview.mboScore),
       },
     });
 
