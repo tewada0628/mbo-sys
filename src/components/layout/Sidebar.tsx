@@ -20,8 +20,8 @@ import {
   ClipboardList,
   UserCircle,
 } from 'lucide-react';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { hasAdminPrivilege, isManager } from '@/lib/permissions';
+import type { UserSession } from '@/types';
 
 type NavItem = {
   label: string;
@@ -117,25 +117,17 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ user }: { user: UserSession | null }) {
   const pathname = usePathname();
-  const { user, isLoading } = useCurrentUser();
 
   return (
     <aside className="flex w-64 flex-col border-r bg-white min-h-screen">
       <div className="flex h-16 items-center border-b px-6">
         <h1 className="text-xl font-bold text-[#01AEBB]">MBO System</h1>
       </div>
-      
+
       <nav className="flex-1 space-y-1 p-4">
-        {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-10 w-full animate-pulse rounded bg-gray-100" />
-            ))}
-          </div>
-        ) : (
-          <>
+        <>
             {navItems
               .filter((item) => item.visible(user?.roles || []))
               .map((item) => {
@@ -170,10 +162,9 @@ export function Sidebar() {
               </Link>
             )}
           </>
-        )}
       </nav>
-      
-      {!isLoading && user && hasAdminPrivilege(user.roles) && (
+
+      {user && hasAdminPrivilege(user.roles) && (
         <div className="border-t p-4">
           <div className="rounded-md bg-amber-50 p-3 flex items-start gap-3">
             <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5" />
