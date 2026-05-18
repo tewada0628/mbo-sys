@@ -16,6 +16,7 @@ import {
   UserCog,
   Bell,
   History,
+  ClipboardList,
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { hasAdminPrivilege, isManager } from '@/lib/permissions';
@@ -92,6 +93,12 @@ const navItems: NavItem[] = [
     label: '評価期管理',
     href: '/admin/periods',
     icon: <Settings className="h-5 w-5" />,
+    visible: (roles) => hasAdminPrivilege(roles),
+  },
+  {
+    label: '監査ログ',
+    href: '/admin/audit-logs',
+    icon: <ClipboardList className="h-5 w-5" />,
     visible: (roles) => hasAdminPrivilege(roles),
   },
 ];

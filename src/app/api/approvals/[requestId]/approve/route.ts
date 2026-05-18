@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
+import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit';
 
 export async function POST(req: Request, { params }: { params: Promise<{ requestId: string }> }) {
   try {
@@ -154,7 +155,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
         client: tx,
       });
 
-      // 5. If final revision approval, swap goals
+      // 5. Write audit log
+      await createAuditLog({
+        actorId: employee.id,
+        action: AUDIT_ACTIONS.GOAL_APPROVED,
+        targetType: 'GOAL_SET',
+        targetId: goalSet.id,
+        beforeValue: { status: goalSet.status, requestType: request.requestType },
+        afterValue: { status: nextStatus, isFinalApproval },
+        client: tx,
+      });
+
+      // 6. If final revision approval, swap goals
       if (isRevision && isFinalApproval) {
         const goals = await tx.goal.findMany({
           where: { goalSetId: goalSet.id },

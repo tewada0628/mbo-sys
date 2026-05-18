@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
+import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit';
 
 export async function POST(req: Request, { params }: { params: Promise<{ requestId: string }> }) {
   try {
@@ -68,7 +69,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ request
         },
       });
 
-      // 3. Notify requester
+      // 3. Write audit log
+      await createAuditLog({
+        actorId: employee.id,
+        action: AUDIT_ACTIONS.GOAL_REJECTED,
+        targetType: 'GOAL_SET',
+        targetId: request.goalSet.id,
+        beforeValue: { status: request.goalSet.status, requestType: request.requestType },
+        afterValue: { status: newStatus, rejectionNote },
+        client: tx,
+      });
+
+      // 4. Notify requester
       await createNotification({
         employeeId: request.requesterId,
         type: 'APPROVAL_REJECTED',

@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import prisma from '@/lib/db';
 import { getGoalSetAccessContext } from '@/lib/goal-access';
 import { createNotification } from '@/lib/notifications';
+import { createAuditLog, AUDIT_ACTIONS } from '@/lib/audit';
 
 export async function POST(req: Request, { params }: { params: Promise<{ goalSetId: string }> }) {
   try {
@@ -64,6 +65,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ goalSet
         type: 'MEETING_REJECTED',
         message: '難易度調整のため、承認済み目標が差し戻されました。差し戻し理由を確認してください。',
         sendEmail: true,
+        client: tx,
+      });
+
+      await createAuditLog({
+        actorId: employee.id,
+        action: AUDIT_ACTIONS.GOAL_MEETING_REJECTED,
+        targetType: 'GOAL_SET',
+        targetId: goalSet.id,
+        beforeValue: { status: 'APPROVED' },
+        afterValue: { status: 'MEETING_REJECTED', rejectionNote: rejectionNote.trim() },
         client: tx,
       });
 
