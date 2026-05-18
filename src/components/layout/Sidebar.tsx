@@ -60,6 +60,12 @@ const navItems: NavItem[] = [
     visible: (roles) => isManager(roles) || hasAdminPrivilege(roles),
   },
   {
+    label: '目標一覧（全社）',
+    href: '/goals/all',
+    icon: <BarChart className="h-5 w-5" />,
+    visible: (roles) => hasAdminPrivilege(roles),
+  },
+  {
     label: '承認・申請管理',
     href: '/approvals',
     icon: <CheckSquare className="h-5 w-5" />,
