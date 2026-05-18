@@ -3,18 +3,19 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Role } from '@prisma/client';
-import { 
-  LayoutDashboard, 
-  Target, 
-  Users, 
-  CheckSquare, 
-  Settings, 
-  BarChart, 
+import {
+  LayoutDashboard,
+  Target,
+  Users,
+  CheckSquare,
+  Settings,
+  BarChart,
   ShieldAlert,
   Calendar,
   Building2,
   UserCog,
   Bell,
+  History,
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { hasAdminPrivilege, isManager } from '@/lib/permissions';
@@ -43,6 +44,12 @@ const navItems: NavItem[] = [
     label: '目標設定・評価',
     href: '/goals/new',
     icon: <Target className="h-5 w-5" />,
+    visible: () => true,
+  },
+  {
+    label: '過去の評価',
+    href: '/evaluations/history',
+    icon: <History className="h-5 w-5" />,
     visible: () => true,
   },
   {

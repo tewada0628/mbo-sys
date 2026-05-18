@@ -1,0 +1,101 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import prisma from '@/lib/db';
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { email: user.email },
+      select: { id: true },
+    });
+
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    const goalSets = await prisma.goalSet.findMany({
+      where: {
+        employeeId: employee.id,
+        evaluationPeriod: {
+          status: { in: ['INACTIVE', 'ARCHIVED'] },
+        },
+      },
+      orderBy: [{ evaluationPeriod: { endDate: 'desc' } }],
+      include: {
+        evaluationPeriod: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+        goals: {
+          where: { isCurrent: true },
+          orderBy: { goalType: 'asc' },
+          select: {
+            id: true,
+            goalType: true,
+            title: true,
+            weight: true,
+            selfReview: { select: { score: true } },
+            managerReview: { select: { score: true } },
+          },
+        },
+        finalEvaluation: {
+          select: {
+            mboScore: true,
+            totalScore: true,
+            finalGrade: true,
+            degree360AchievementBonus: true,
+            degree360CredoBonus: true,
+            confirmedAt: true,
+          },
+        },
+      },
+    });
+
+    const items = goalSets.map((gs) => ({
+      goalSetId: gs.id,
+      status: gs.status,
+      evaluationPeriod: {
+        id: gs.evaluationPeriod.id,
+        name: gs.evaluationPeriod.name,
+        startDate: gs.evaluationPeriod.startDate.toISOString(),
+        endDate: gs.evaluationPeriod.endDate.toISOString(),
+      },
+      finalEvaluation: gs.finalEvaluation
+        ? {
+            mboScore: Number(gs.finalEvaluation.mboScore),
+            totalScore: Number(gs.finalEvaluation.totalScore),
+            finalGrade: gs.finalEvaluation.finalGrade,
+            degree360AchievementBonus: gs.finalEvaluation.degree360AchievementBonus,
+            degree360CredoBonus: gs.finalEvaluation.degree360CredoBonus,
+            confirmedAt: gs.finalEvaluation.confirmedAt?.toISOString() ?? null,
+          }
+        : null,
+      goals: gs.goals.map((g) => ({
+        id: g.id,
+        goalType: g.goalType,
+        title: g.title,
+        weight: Number(g.weight),
+        selfScore: g.selfReview ? Number(g.selfReview.score) : null,
+        managerScore: g.managerReview ? Number(g.managerReview.score) : null,
+      })),
+    }));
+
+    return NextResponse.json({ items });
+  } catch (error) {
+    console.error('Error fetching evaluation history:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
