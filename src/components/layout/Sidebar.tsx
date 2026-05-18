@@ -10,6 +10,7 @@ import {
   CheckSquare,
   Settings,
   BarChart,
+  BarChart2,
   ShieldAlert,
   Calendar,
   Building2,
@@ -76,6 +77,12 @@ const navItems: NavItem[] = [
     label: '評価調整・確定',
     href: '/admin/review-adjustment',
     icon: <BarChart className="h-5 w-5" />,
+    visible: (roles) => hasAdminPrivilege(roles),
+  },
+  {
+    label: '評価サマリ',
+    href: '/reports/summary',
+    icon: <BarChart2 className="h-5 w-5" />,
     visible: (roles) => hasAdminPrivilege(roles),
   },
   {
